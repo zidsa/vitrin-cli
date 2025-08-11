@@ -1,0 +1,104 @@
+{
+  "name": "@zidsa/vitrin-cli",
+  "version": "1.0.0",
+  "description": "CLI for Zid theme development",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "vitrin": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "tui": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "lint": "eslint src --ext .ts,.js",
+    "lint:fix": "eslint src --ext .ts,.js --fix",
+    "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    "clean": "rm -rf dist coverage",
+    "pretest": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "zid",
+    "theme",
+    "ecommerce",
+    "development",
+    "vitrin"
+  ],
+  "author": {
+    "name": "Zid Engineering",
+    "email": "developers@zid.sa"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/inquirer": "^9.0.9",
+    "archiver": "^7.0.1",
+    "axios": "^1.11.0",
+    "boxen": "^8.0.1",
+    "chalk": "^5.5.0",
+    "commander": "^14.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "figlet": "^1.8.2",
+    "form-data": "^4.0.4",
+    "gradient-string": "^3.0.0",
+    "ink": "^6.1.0",
+    "ink-big-text": "^2.0.0",
+    "ink-link": "^4.1.0",
+    "ink-select-input": "^6.2.0",
+    "ink-spinner": "^5.0.0",
+    "ink-table": "^3.1.0",
+    "ink-text-input": "^6.0.0",
+    "inquirer": "^12.9.3",
+    "open": "^10.2.0",
+    "react": "^19.1.1",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.5",
+    "@types/archiver": "^6.0.3",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.2.1",
+    "@types/react": "^19.1.10",
+    "@types/sinon": "^17.0.4",
+    "@types/tmp": "^0.2.6",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.0.5",
+    "msw": "^2.10.4",
+    "nock": "^14.0.9",
+    "prettier": "^3.6.2",
+    "sinon": "^21.0.0",
+    "tmp": "^0.2.5",
+    "ts-jest": "^29.4.1",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ]
+}

@@ -1,0 +1,145 @@
+import { createReadStream, createWriteStream, promises as fs } from 'fs';
+import { join, basename, dirname, resolve } from 'path';
+import archiver from 'archiver';
+import logger from './logger.js';
+import type { BuildOptions } from '../types/index.js';
+
+export class BuildService {
+  private static instance: BuildService;
+
+  private constructor() {}
+
+  static getInstance(): BuildService {
+    if (!BuildService.instance) {
+      BuildService.instance = new BuildService();
+    }
+    return BuildService.instance;
+  }
+
+  async zipTheme(
+    buildName: string,
+    buildPath: string,
+    options: BuildOptions = {}
+  ): Promise<string> {
+    const resolvedPath = resolve(buildPath);
+    const outputDir = options.output || process.cwd();
+    const outputPath = join(outputDir, `${buildName}.zip`);
+
+    await fs.mkdir(dirname(outputPath), { recursive: true });
+
+    return new Promise((resolve, reject) => {
+      const output = createWriteStream(outputPath);
+      const archive = archiver('zip', {
+        zlib: { level: options.compression || 9 },
+      });
+
+      output.on('close', () => {
+        logger.success(`Theme built successfully: ${outputPath}`);
+        logger.info(
+          `Archive size: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`
+        );
+        resolve(outputPath);
+      });
+
+      archive.on('error', err => {
+        logger.error('Build failed', err);
+        reject(err);
+      });
+
+      archive.pipe(output);
+
+      const defaultExcludes = [
+        'node_modules/**',
+        '.git/**',
+        '.DS_Store',
+        'Thumbs.db',
+        '*.log',
+        '*.tmp',
+        'dist/**',
+        'build/**',
+        '.env*',
+        '*.zip',
+      ];
+
+      const excludes = [...defaultExcludes, ...(options.exclude || [])];
+
+      archive.glob('**/*', {
+        cwd: resolvedPath,
+        ignore: excludes,
+        dot: false,
+      });
+
+      archive.finalize();
+    });
+  }
+
+  async validateThemeStructure(themePath: string): Promise<boolean> {
+    const resolvedPath = resolve(themePath);
+
+    try {
+      await fs.access(resolvedPath);
+    } catch {
+      logger.error(`Theme path does not exist: ${resolvedPath}`);
+      return false;
+    }
+
+    const requiredFiles = ['package.json', 'layout.jinja'];
+
+    const missingFiles: string[] = [];
+
+    for (const file of requiredFiles) {
+      try {
+        await fs.access(join(resolvedPath, file));
+      } catch {
+        missingFiles.push(file);
+      }
+    }
+
+    if (missingFiles.length > 0) {
+      logger.error(`Missing required files: ${missingFiles.join(', ')}`);
+      return false;
+    }
+
+    return true;
+  }
+
+  async removeDSStore(dirPath: string): Promise<void> {
+    const resolvedPath = resolve(dirPath);
+
+    try {
+      const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = join(resolvedPath, entry.name);
+
+        if (entry.isDirectory()) {
+          await this.removeDSStore(fullPath);
+        } else if (entry.name === '.DS_Store') {
+          await fs.unlink(fullPath);
+          logger.debug(`Removed .DS_Store from: ${fullPath}`);
+        }
+      }
+    } catch (error) {
+      logger.debug(`Error cleaning .DS_Store files: ${error}`);
+    }
+  }
+
+  async getThemeInfo(themePath: string): Promise<any> {
+    const resolvedPath = resolve(themePath);
+    const themeJsonPath = join(resolvedPath, 'theme.json');
+
+    try {
+      const themeJsonContent = await fs.readFile(themeJsonPath, 'utf8');
+      return JSON.parse(themeJsonContent);
+    } catch (error) {
+      logger.warn('No theme.json found or invalid JSON');
+      return {
+        name: basename(resolvedPath),
+        version: '1.0.0',
+        description: 'Theme built with Vitrin CLI',
+      };
+    }
+  }
+}
+
+export default BuildService.getInstance();
