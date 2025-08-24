@@ -1,7 +1,7 @@
 # Vitrin CLI
 command-line interface for Zid theme development.
 
-![Vitrin CLI Demo](./assets/demo.gif)
+![Vitrin CLI Demo](https://cdn.jsdelivr.net/npm/@zidsa/vitrin-cli/assets/demo.gif)
 
 
 ## Installation
