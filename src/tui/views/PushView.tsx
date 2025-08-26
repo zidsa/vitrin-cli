@@ -228,11 +228,18 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       
       if (selectedStore && selectedStore !== 'none') {
         addLog(`🏪 Installing on store ${selectedStore}...`);
-        await api.installThemeOnStore({
-          email: selectedStore,
-          themeId: theme.id,
-          versionId: versionData.id
-        });
+        const storesResponse = await api.getDevStores();
+        const targetStore = storesResponse.stores.find(s => s.email === selectedStore);
+        
+        if (!targetStore) {
+          throw new Error(`Store with email ${selectedStore} not found`);
+        }
+        
+        await api.installTheme(
+          String(targetStore.id),
+          theme.id,
+          versionData.id
+        );
         addLog('✅ Theme installed on store');
       }
       

@@ -218,17 +218,24 @@ async function pushTheme(options: PushOptions): Promise<void> {
 
     if (options.store) {
       spinner.start(`Installing theme on store ${options.store}...`);
-      await api.installThemeOnStore({
-        email: options.store,
-        themeId: theme.id,
-        versionId: versionData.id,
-      });
+      const storesResponse = await api.getDevStores();
+      const targetStore = storesResponse.stores.find(s => s.email === options.store);
+      
+      if (!targetStore) {
+        throw new Error(`Store with email ${options.store} not found`);
+      }
+      
+      const installation = await api.installTheme(
+        String(targetStore.id),
+        theme.id,
+        versionData.id
+      );
       spinner.succeed(`Theme installed on store ${options.store}`);
 
       if (options.activate) {
         spinner.start('Activating theme...');
         try {
-          await api.activateTheme(options.store, theme.id);
+          await api.activateTheme(String(targetStore.id), installation.id);
           spinner.succeed('Theme activated successfully');
         } catch (error) {
           spinner.warn('Failed to activate theme');

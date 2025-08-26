@@ -376,40 +376,6 @@ export class ApiService {
     }
   }
 
-  async installThemeOnStore(data: {
-    email: string;
-    themeId: string;
-    versionId: string;
-  }): Promise<any> {
-    try {
-      const token = await auth.getToken();
-      const response = await this.client.post<any>(
-        '/v1/market/dev-stores/install',
-        {
-          email: data.email,
-          theme_id: data.themeId,
-          version_id: data.versionId,
-        },
-        {
-          headers: {
-            'x-partner-token': token || '',
-          },
-        }
-      );
-
-      if (response.data.status === 'success') {
-        return response.data.payload;
-      }
-
-      throw new Error(
-        response.data.message?.description || 'Failed to install theme on store'
-      );
-    } catch (error) {
-      logger.error('Failed to install theme on store', error as Error);
-      throw error;
-    }
-  }
-
   async getPreviewUrl(
     storeId: string,
     storeThemeId: string | null = null

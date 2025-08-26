@@ -25,6 +25,19 @@ vitrin push         # Push theme to Zid
 
 ## Commands
 
+### Theme Management Commands
+
+```bash
+vitrin themes list [options]    # List all themes from server
+vitrin themes delete <id>       # Delete a theme from server
+```
+
+**Options for themes list:**
+- `-s, --search <term>` - Search themes by name
+
+**Options for themes delete:**
+- `-f, --force` - Skip confirmation
+
 ### Authentication
 
 ```bash
@@ -41,6 +54,30 @@ Listening for authentication callback on http://localhost:4444/auth/callback
 
 ✅ Authentication successful!
 Token saved to ~/.vitrin/config.json
+```
+
+### Initialize Theme
+
+```bash
+vitrin init [path] [options]
+```
+
+Initializes a Vitrin theme configuration in an existing directory.
+
+**Options:**
+- `-n, --name <name>` - Theme name
+- `--link <theme-id>` - Link to existing theme by ID
+
+**Example:**
+```
+$ vitrin init
+✓ Theme configuration initialized
+
+📚 Theme initialized successfully!
+
+Next steps:
+  1. Build your theme: vitrin build
+  2. Push to Zid: vitrin push
 ```
 
 ### Theme Creation
@@ -91,10 +128,17 @@ Version: 1.0.0
 ### Building Themes
 
 ```bash
-vitrin build [theme-path]
+vitrin build [path] [options]
 ```
 
 Builds theme into distributable package.
+
+**Options:**
+- `-n, --name <name>` - Name for the build output
+- `-o, --output <path>` - Output directory
+- `-c, --compression <level>` - Compression level 0-9 (default: 9)
+- `--validate` - Validate theme structure before building
+- `-e, --exclude <patterns...>` - Exclude patterns
 
 **Example:**
 ```
@@ -108,14 +152,21 @@ Building theme package...
 ### Preview on Dev Store
 
 ```bash
-vitrin preview [options]
+vitrin preview [store-id] [theme-path] [options]
 ```
 
 Preview your theme on a dev store.
 
+**Arguments:**
+- `store-id` - Dev store ID (optional if default store is set)
+- `theme-path` - Path to theme directory (default: current directory)
+
 **Options:**
-- `-s, --store <email>` - Dev store email
+- `-t, --theme-id <id>` - Use existing theme ID
+- `-n, --name <name>` - Theme name for preview
 - `--build` - Build theme before previewing
+- `--validate` - Validate theme structure
+- `--new-theme` - Force creation of a new theme
 
 **Example:**
 ```
@@ -143,27 +194,29 @@ Installation: 11111
 ### List Resources
 
 ```bash
-vitrin list [resource]
+vitrin list                    # List both themes and stores (default)
+vitrin list --themes           # List themes only
+vitrin list --stores           # List dev stores only
+vitrin themes list             # Alternative: list themes only
 ```
 
-Lists themes or dev stores.
+Lists themes and/or dev stores.
+
+**Options:**
+- `-t, --themes` - List themes only
+- `-s, --stores` - List dev stores only  
+- `--json` - Output as JSON
 
 **Example:**
 ```
-$ vitrin list stores
+$ vitrin list --stores
 Fetching dev stores...
+✅ Found 2 dev stores:
 
-Dev Stores (3):
-
-ID: 123
-Name: Test Store 1
-Email: test1@example.com
-URL: https://test1.zidtest.com
-
-ID: 456
-Name: Test Store 2
-Email: test2@example.com
-URL: https://test2.zidtest.com
+ID          Name                     Email                         Domain
+--------------------------------------------------------------------------------
+123         Test Store 1             test1@example.com            test1.zidtest.com
+456         Test Store 2             test2@example.com            test2.zidtest.com
 ```
 
 ### Theme Installation
@@ -195,6 +248,30 @@ Activates an installed theme on a store.
 $ vitrin activate 123 11111
 Activating theme...
 ✅ Theme activated successfully!
+```
+
+### Update Theme Version
+
+```bash
+vitrin update <theme-id> [theme-path] [options]
+```
+
+Updates an existing theme with a new version.
+
+**Options:**
+- `-v, --version <version>` - Version number
+- `-c, --changelog <text>` - Version changelog
+- `--skip-build` - Skip building theme package
+
+**Example:**
+```
+$ vitrin update abc123 --version 2.0.0 --changelog "Added new features"
+Building theme package...
+✓ Theme package built
+Creating version 2.0.0...
+✓ Version created
+Uploading theme...
+✓ Upload complete
 ```
 
 ## Interactive TUI Mode
@@ -286,7 +363,9 @@ rm ~/.vitrin/config.json
 
 ```bash
 # Check authentication status
-vitrin list themes
+vitrin themes list
+# or
+vitrin list --themes
 
 # If you see "Authentication required", login again
 vitrin login
@@ -312,7 +391,7 @@ LOG_LEVEL=debug vitrin preview 123
 
 # Common issues:
 - Expired authentication token - run `vitrin login`
-- Invalid store ID - check with `vitrin list stores`
+- Invalid store ID - check with `vitrin list --stores`
 - Theme already exists - will auto-generate unique name
 ```
 
