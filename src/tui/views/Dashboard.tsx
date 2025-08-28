@@ -6,6 +6,7 @@ import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 import { View } from '../App.js';
 import { ThemeManager } from '../../core/theme.js';
+import { getVersion } from '../../utils/getVersion.js';
 
 interface DashboardProps {
   isAuthenticated: boolean;
@@ -108,7 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
       <Box flexDirection="column" marginBottom={1}>
-        <Text color="rgb(232, 131, 136)" bold>Vitrin CLI v1.0.0</Text>
+        <Text color="rgb(232, 131, 136)" bold>Vitrin CLI v{getVersion()}</Text>
         <Divider />
       </Box>
 

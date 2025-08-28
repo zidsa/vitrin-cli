@@ -14,6 +14,7 @@ import { DevStoresView } from './views/DevStoresView.js';
 import PushView from './views/PushView.js';
 import auth from '../core/auth.js';
 import { ThemeManager } from '../core/theme.js';
+import { getVersion } from '../utils/getVersion.js';
 
 export type View = 
   | 'splash'
@@ -123,6 +124,9 @@ export const App: React.FC = () => {
         </Box>
         <Box marginTop={1}>
           <Text color="rgb(232, 131, 136)" bold>Zid Themeing System</Text>
+        </Box>
+        <Box>
+          <Text color="gray">v{getVersion()}</Text>
         </Box>
         <Box marginTop={2}>
           <Text color="gray">
