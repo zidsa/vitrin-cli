@@ -19,6 +19,7 @@ import uiCommand from './commands/ui.js';
 import themesCommand from './commands/themes.js';
 import initCommand from './commands/init.js';
 import pushCommand from './commands/push.js';
+import { checkForUpdates } from './utils/versionCheck.js';
 
 const loadSavedSettings = async () => {
   try {
@@ -133,6 +134,8 @@ program.on('command:*', operands => {
 
 async function main(): Promise<void> {
   try {
+    void checkForUpdates();
+    
     if (process.argv.length === 2) {
       const { startTUI } = await import('./tui/index.js');
       const { waitUntilExit } = startTUI();
