@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed "Create New Theme" UI text overlap in TUI mode
 - Fixed theme installation error on push command (404 error)
 - Fixed `vitrin new` command ESM module error (__dirname not defined)
+- Fixed "Press any key to continue" in PushView - now responds to any key press
 - Updated README with correct command usage documentation
 - README demo image now uses jsDelivr CDN for npm package compatibility
 - Fixed `vitrin list` documentation to reflect correct behavior

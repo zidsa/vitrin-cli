@@ -34,6 +34,11 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
   const [enteringChangelog, setEnteringChangelog] = useState(false);
 
   useInput((input, key) => {
+    if (state === 'complete' || state === 'error') {
+      onBack();
+      return;
+    }
+    
     if (key.return) {
       if (enteringVersion) {
         setEnteringVersion(false);
@@ -265,7 +270,7 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       <Box flexDirection="column" padding={1}>
         <Text color="red">❌ {error}</Text>
         <Box marginTop={1}>
-          <Text dimColor>Press any key to go back</Text>
+          <Text dimColor>Press any key to continue</Text>
         </Box>
       </Box>
     );
