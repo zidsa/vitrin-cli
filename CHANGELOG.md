@@ -10,16 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CHANGELOG.md for tracking version changes
 - Assets folder now included in npm package for README demo image
+- Version check utility to notify users of available updates
+- Dynamic version display in TUI from package.json
+- Unified theme creation logic in shared utility to prevent breaking changes
 
 ### Fixed
 - Fixed "Create New Theme" UI text overlap in TUI mode
 - Fixed theme installation error on push command (404 error)
+- Fixed `vitrin new` command ESM module error (__dirname not defined)
 - Updated README with correct command usage documentation
 - README demo image now uses jsDelivr CDN for npm package compatibility
+- Fixed `vitrin list` documentation to reflect correct behavior
 
 ### Changed
 - Push command now uses correct API endpoint for theme installation
 - Updated all command examples in README to match actual CLI usage
+- TUI now shows actual version from package.json instead of hardcoded value
+- Theme creation logic centralized in createTheme.ts utility
 
 ### Removed
 - Removed all unnecessary code comments throughout the project

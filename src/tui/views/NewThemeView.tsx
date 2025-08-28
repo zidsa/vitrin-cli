@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import { ThemeManager } from '../../core/theme.js';
+import { createThemeFromTemplate } from '../../utils/createTheme.js';
 
 interface NewThemeViewProps {
   onComplete: (themeName?: string, themePath?: string) => void;
@@ -36,53 +36,10 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({ onComplete, onBack }
     setStep('creating');
     
     try {
-      const { resolve, join } = await import('path');
-      const fs = (await import('fs')).promises;
-      const { execSync } = await import('child_process');
-      
-      const targetDir = themeName;
-      const resolvedPath = resolve(process.cwd(), targetDir);
-      
-      try {
-        await fs.access(resolvedPath);
-        setError(`Directory already exists: ${resolvedPath}`);
-        setStep('name');
-        return;
-      } catch {
-      }
-      
-      const templateRepo = 'https://github.com/zidsa/soft-theme-vitrin.git';
-      
-      try {
-        execSync(`git clone ${templateRepo} "${resolvedPath}"`, {
-          stdio: 'pipe'
-        });
-      } catch (cloneError) {
-        setError('Failed to create theme. Please check your internet connection.');
-        setStep('name');
-        return;
-      }
-      
-      try {
-        const gitDir = join(resolvedPath, '.git');
-        await fs.rm(gitDir, { recursive: true, force: true });
-      } catch {
-      }
-      
-      const packageJsonPath = join(resolvedPath, 'package.json');
-      const packageJson = JSON.parse(
-        await fs.readFile(packageJsonPath, 'utf-8')
-      );
-      packageJson.name = themeName.toLowerCase().replace(/\s+/g, '-');
-      packageJson.description = `${themeName} theme created with Vitrin CLI`;
-      packageJson.version = '1.0.0';
-      
-      await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
-      
-      const themeManager = new ThemeManager(resolvedPath);
-      await themeManager.init({
-        name: themeName,
-        createdAt: new Date().toISOString()
+      const resolvedPath = await createThemeFromTemplate({
+        themeName,
+        targetDir: themeName,
+        skipGit: false
       });
       
       process.chdir(resolvedPath);

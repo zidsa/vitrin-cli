@@ -10,13 +10,15 @@ const __dirname = dirname(__filename);
 export async function checkForUpdates(): Promise<void> {
   try {
     const packagePath = join(__dirname, '../../package.json');
-    const currentVersion = JSON.parse(readFileSync(packagePath, 'utf8')).version;
-    
-    const latestVersion = execSync('npm view @zidsa/vitrin-cli version', { 
+    const currentVersion = JSON.parse(
+      readFileSync(packagePath, 'utf8')
+    ).version;
+
+    const latestVersion = execSync('npm view @zidsa/vitrin-cli version', {
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'ignore']
+      stdio: ['pipe', 'pipe', 'ignore'],
     }).trim();
-    
+
     if (latestVersion && latestVersion !== currentVersion) {
       console.log(chalk.yellow.bold('\n📦 Update available!'));
       console.log(chalk.yellow(`Current version: ${currentVersion}`));

@@ -219,12 +219,14 @@ async function pushTheme(options: PushOptions): Promise<void> {
     if (options.store) {
       spinner.start(`Installing theme on store ${options.store}...`);
       const storesResponse = await api.getDevStores();
-      const targetStore = storesResponse.stores.find(s => s.email === options.store);
-      
+      const targetStore = storesResponse.stores.find(
+        s => s.email === options.store
+      );
+
       if (!targetStore) {
         throw new Error(`Store with email ${options.store} not found`);
       }
-      
+
       const installation = await api.installTheme(
         String(targetStore.id),
         theme.id,
