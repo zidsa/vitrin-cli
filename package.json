@@ -1,6 +1,6 @@
 {
   "name": "@zidsa/vitrin-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CLI for Zid theme development",
   "type": "module",
   "main": "dist/cli.js",
