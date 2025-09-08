@@ -102,7 +102,12 @@ export class ApiService {
 
           const token = await auth.getToken();
           if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+            // v1 endpoints use x-partner-token, v2 endpoints use Bearer token
+            if (config.url?.includes('/v1/')) {
+              config.headers['x-partner-token'] = token;
+            } else {
+              config.headers['Authorization'] = `Bearer ${token}`;
+            }
             logger.debug(`Added auth token to request: ${config.url}`);
 
             if (process.env.LOG_LEVEL === 'debug') {
@@ -177,7 +182,12 @@ export class ApiService {
               const originalRequest = error.config;
               const newToken = await auth.getToken();
               if (newToken && originalRequest) {
-                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                // v1 endpoints use x-partner-token, v2 endpoints use Bearer token
+                if (originalRequest.url?.includes('/v1/')) {
+                  originalRequest.headers['x-partner-token'] = newToken;
+                } else {
+                  originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                }
                 return this.client.request(originalRequest);
               }
             } catch (loginError) {
