@@ -31,6 +31,69 @@ export class ApiService {
     return process.env.VITRIN_API_URL || 'https://api.zid.sa';
   }
 
+  private extractErrorMessage(data: any): string | null {
+    if (!data) return null;
+    
+    if (typeof data === 'string') {
+      return data;
+    }
+    
+    if (data.message) {
+      if (typeof data.message === 'string') {
+        return data.message;
+      }
+      if (data.message.description) {
+        return data.message.description;
+      }
+    }
+    
+    if (data.detail) {
+      return data.detail;
+    }
+    
+    if (data.error) {
+      if (typeof data.error === 'string') {
+        return data.error;
+      }
+      if (data.error.message) {
+        return data.error.message;
+      }
+    }
+    
+    if (data.errors) {
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        return data.errors[0];
+      }
+      if (typeof data.errors === 'object') {
+        const firstError = Object.values(data.errors)[0];
+        if (Array.isArray(firstError) && firstError.length > 0) {
+          return firstError[0];
+        }
+        return String(firstError);
+      }
+    }
+    
+    if (data.non_field_errors) {
+      if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) {
+        return data.non_field_errors[0];
+      }
+    }
+    
+    const keys = Object.keys(data);
+    for (const key of keys) {
+      if (key !== 'status' && key !== 'statusCode' && data[key]) {
+        if (typeof data[key] === 'string') {
+          return data[key];
+        }
+        if (Array.isArray(data[key]) && data[key].length > 0 && typeof data[key][0] === 'string') {
+          return data[key][0];
+        }
+      }
+    }
+    
+    return null;
+  }
+
   private setupInterceptors(): void {
     this.client.interceptors.request.use(
       async config => {
@@ -97,23 +160,52 @@ export class ApiService {
           logger.debug(
             `API returned 401. Response: ${JSON.stringify(error.response?.data)}`
           );
+          
+          const errorDetail = this.extractErrorMessage(error.response?.data);
           await auth.clearToken();
-          throw new Error(
-            'Authentication expired. Please run "vitrin login" to re-authenticate.'
-          );
+          
+          if (errorDetail && errorDetail.toLowerCase().includes('email')) {
+            throw new Error(`Authentication failed: ${errorDetail}`);
+          } else if (errorDetail) {
+            throw new Error(
+              `Authentication failed: ${errorDetail}. Please run "vitrin login" to re-authenticate.`
+            );
+          } else {
+            throw new Error(
+              'Authentication expired. Please run "vitrin login" to re-authenticate.'
+            );
+          }
         }
 
         if (status === 403) {
           logger.debug(
             `API returned 403. Response: ${JSON.stringify(error.response?.data)}`
           );
-          throw new Error(
-            'Access denied. Check your permissions for this resource.'
-          );
+          
+          const errorDetail = this.extractErrorMessage(error.response?.data);
+          if (errorDetail) {
+            throw new Error(`Access denied: ${errorDetail}`);
+          } else {
+            throw new Error(
+              'Access denied. Check your permissions for this resource.'
+            );
+          }
         }
 
         if (status >= 500) {
-          throw new Error(`Server error (${status}). Please try again later.`);
+          const errorDetail = this.extractErrorMessage(error.response?.data);
+          if (errorDetail) {
+            throw new Error(`Server error (${status}): ${errorDetail}`);
+          } else {
+            throw new Error(`Server error (${status}). Please try again later.`);
+          }
+        }
+        
+        if (status >= 400) {
+          const errorDetail = this.extractErrorMessage(error.response?.data);
+          if (errorDetail) {
+            throw new Error(errorDetail);
+          }
         }
 
         return Promise.reject(error);
@@ -225,7 +317,12 @@ export class ApiService {
     try {
       const response = await this.client.post('/v2/themes/', data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to create theme: ${errorMessage}`);
+        throw new Error(`Failed to create theme: ${errorMessage}`);
+      }
       logger.error('Failed to create theme', error as Error);
       throw error;
     }
@@ -250,7 +347,12 @@ export class ApiService {
 
       logger.debug(`Version response: ${JSON.stringify(response.data)}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to create theme version: ${errorMessage}`);
+        throw new Error(`Failed to create theme version: ${errorMessage}`);
+      }
       logger.error('Failed to create theme version', error as Error);
       throw error;
     }
@@ -349,11 +451,12 @@ export class ApiService {
       );
       return response.data;
     } catch (error: any) {
-      const errorDetail =
-        error.response?.data?.theme_id?.[0] ||
-        error.response?.data ||
-        error.message;
-      logger.error('Failed to install theme:', errorDetail);
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to install theme: ${errorMessage}`);
+        throw new Error(`Failed to install theme: ${errorMessage}`);
+      }
+      logger.error('Failed to install theme', error as Error);
       throw error;
     }
   }
@@ -370,7 +473,12 @@ export class ApiService {
         }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to activate theme: ${errorMessage}`);
+        throw new Error(`Failed to activate theme: ${errorMessage}`);
+      }
       logger.error('Failed to activate theme', error as Error);
       throw error;
     }
