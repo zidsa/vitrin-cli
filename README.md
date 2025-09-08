@@ -354,7 +354,7 @@ Authentication tokens are stored in `~/.vitrin/config.json`.
 
 To logout:
 ```bash
-rm ~/.vitrin/config.json
+vitrin logout
 ```
 
 ## Troubleshooting
