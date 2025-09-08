@@ -1,6 +1,5 @@
 import { resolve, join } from 'path';
 import { promises as fs } from 'fs';
-import { execSync } from 'child_process';
 import logger from './logger.js';
 import { ThemeManager } from '../core/theme.js';
 
@@ -34,22 +33,25 @@ export async function createThemeFromTemplate(
   log('Cloning template from GitHub...');
 
   try {
-    execSync(`git clone ${templateRepo} "${resolvedPath}"`, {
+    const { spawnSync } = await import('child_process');
+    const result = spawnSync('git', ['clone', templateRepo, resolvedPath], {
       stdio: 'pipe',
+      shell: process.platform === 'win32'
     });
+    
+    if (result.error || result.status !== 0) {
+      throw result.error || new Error(result.stderr?.toString() || 'Clone failed');
+    }
   } catch (cloneError) {
     throw new Error(
-      'Failed to clone template. Please check your internet connection.'
+      'Failed to clone template. Please check your internet connection and ensure git is installed.'
     );
   }
 
-  // Remove template's .git directory
   try {
     const gitDir = join(resolvedPath, '.git');
     await fs.rm(gitDir, { recursive: true, force: true });
   } catch {}
-
-  // Update package.json
   const packageJsonPath = join(resolvedPath, 'package.json');
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
   packageJson.name = themeName.toLowerCase().replace(/\s+/g, '-');
@@ -148,7 +150,16 @@ For support, please contact the theme developer or visit the Vitrin CLI document
   // Initialize git if not skipped
   if (!skipGit) {
     try {
-      execSync('git init', { cwd: resolvedPath, stdio: 'pipe' });
+      const { spawnSync: gitInitSpawn } = await import('child_process');
+      const gitInitResult = gitInitSpawn('git', ['init'], { 
+        cwd: resolvedPath, 
+        stdio: 'pipe',
+        shell: process.platform === 'win32'
+      });
+      
+      if (gitInitResult.error || gitInitResult.status !== 0) {
+        throw gitInitResult.error || new Error('Git init failed');
+      }
 
       const gitignoreContent = `node_modules/
 .npm

@@ -8,7 +8,8 @@
     "vitrin": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "tsc",
+    "postbuild": "node -e \"if(process.platform!=='win32'){require('fs').chmodSync('dist/cli.js',0o755)}\"",
     "dev": "tsx src/cli.ts",
     "tui": "tsx src/cli.ts",
     "start": "node dist/cli.js",

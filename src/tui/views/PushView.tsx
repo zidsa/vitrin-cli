@@ -8,7 +8,6 @@ import api from '../../core/api.js';
 import auth from '../../core/auth.js';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
 import FormData from 'form-data';
 
 interface PushViewProps {
@@ -130,9 +129,31 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       await fs.mkdir(distDir, { recursive: true });
       const packagePath = join(distDir, 'theme.zip');
       
-      execSync(`zip -r ${packagePath} . -x "*.git*" "node_modules/*" ".vitrin/*"`, {
-        cwd: themePath,
-        stdio: 'ignore'
+      const archiver = (await import('archiver')).default;
+      const { createWriteStream } = await import('fs');
+      const output = createWriteStream(packagePath);
+      const archive = archiver('zip', {
+        zlib: { level: 9 }
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        output.on('close', () => resolve());
+        output.on('error', reject);
+        archive.on('error', reject);
+        
+        archive.pipe(output);
+        
+        archive.glob('**/*', {
+          cwd: themePath,
+          ignore: [
+            '*.git*',
+            '**/node_modules/**',
+            '**/.vitrin/**',
+            '*.zip'
+          ]
+        });
+        
+        archive.finalize();
       });
       
       let theme: any;

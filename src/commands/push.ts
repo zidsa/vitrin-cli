@@ -88,14 +88,33 @@ async function pushTheme(options: PushOptions): Promise<void> {
     await fs.mkdir(distDir, { recursive: true });
     const packagePath = join(distDir, 'theme.zip');
 
-    const { execSync } = await import('child_process');
-    execSync(
-      `zip -r ${packagePath} . -x "*.git*" "node_modules/*" ".vitrin/*"`,
-      {
+    const archiver = (await import('archiver')).default;
+    const { createWriteStream } = await import('fs');
+    const output = createWriteStream(packagePath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      output.on('close', () => resolve());
+      output.on('error', reject);
+      archive.on('error', reject);
+      
+      archive.pipe(output);
+      
+      archive.glob('**/*', {
         cwd: themePath,
-        stdio: 'ignore',
-      }
-    );
+        ignore: [
+          '*.git*',
+          '**/node_modules/**',
+          '**/.vitrin/**',
+          '*.zip'
+        ]
+      });
+      
+      archive.finalize();
+    });
+    
     spinner.succeed('Theme package built successfully');
 
     let theme: Theme | undefined;
