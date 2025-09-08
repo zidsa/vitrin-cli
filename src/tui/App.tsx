@@ -8,7 +8,6 @@ import { BuildView } from './views/BuildView.js';
 import { PreviewWizard } from './views/PreviewWizard.js';
 import { SettingsView } from './views/SettingsView.js';
 import { NewThemeView } from './views/NewThemeView.js';
-import { DevStoresView } from './views/DevStoresView.js';
 import PushView from './views/PushView.js';
 import auth from '../core/auth.js';
 import { ThemeManager } from '../core/theme.js';
@@ -22,7 +21,6 @@ export type View =
   | 'preview'
   | 'settings'
   | 'new'
-  | 'devstores'
   | 'push';
 
 interface AppState {
@@ -200,19 +198,6 @@ export const App: React.FC = () => {
               } else {
                 navigateTo('dashboard');
               }
-            }}
-            onBack={() => navigateTo('dashboard')}
-          />
-        );
-      case 'devstores':
-        return (
-          <DevStoresView
-            onSelectStore={(store) => {
-              setState(prev => ({
-                ...prev,
-                selectedStore: store,
-                currentView: 'preview'
-              }));
             }}
             onBack={() => navigateTo('dashboard')}
           />

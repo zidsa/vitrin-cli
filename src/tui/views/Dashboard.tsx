@@ -78,9 +78,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '🚀 Push to Zid', value: 'push', key: '2', requiresTheme: true },
     { label: '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
     { label: '👁️  Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
-    { label: '🏪 View Dev Stores', value: 'devstores', key: '5', requiresAuth: true },
-    { label: '📋 Manage Themes', value: 'themes', key: '6', requiresAuth: true },
-    { label: '⚙️  Settings', value: 'settings', key: '7' },
+    { label: '📋 Manage Themes', value: 'themes', key: '5', requiresAuth: true },
+    { label: '⚙️  Settings', value: 'settings', key: '6' },
     { label: '🚪 Exit', value: 'exit', key: 'q' },
   ];
 
