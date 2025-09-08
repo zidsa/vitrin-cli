@@ -166,12 +166,54 @@ export class AuthManager {
     return token !== null;
   }
 
+  async validateToken(): Promise<boolean> {
+    const token = await this.getToken();
+    if (!token) return false;
+
+    try {
+      const axios = (await import('axios')).default;
+      const baseURL = process.env.VITRIN_API_URL || 'https://api.zid.sa';
+      
+      const response = await axios.get(`${baseURL}/v1/market/partner`, {
+        headers: {
+          'x-partner-token': token,
+          'Content-Type': 'application/json',
+          'User-Agent': 'vitrin-cli/1.0.0',
+          'accept-language': 'en',
+        },
+        timeout: 5000,
+      });
+      
+      return response.status >= 200 && response.status < 300;
+    } catch (error: any) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
+        logger.debug('Token validation failed - token expired or invalid');
+        await this.clearToken();
+        return false;
+      }
+      return true;
+    }
+  }
+
   async requireAuth(): Promise<string> {
     const token = await this.getToken();
 
     if (!token) {
-      logger.error('No authentication token found. Please login first.');
-      throw new Error('Authentication required. Run "vitrin login" first.');
+      logger.error('No authentication token found.');
+      logger.info('Starting authentication process...');
+      
+      try {
+        await this.login();
+        const newToken = await this.getToken();
+        if (newToken) {
+          return newToken;
+        }
+      } catch (error) {
+        logger.error('Authentication failed:', error as Error);
+      }
+      
+      throw new Error('Authentication required. Run "vitrin login" to authenticate.');
     }
 
     return token;
@@ -185,6 +227,11 @@ export class AuthManager {
   async getAuthInfo(): Promise<{ token: string | null }> {
     const token = await this.getToken();
     return { token };
+  }
+
+  async refreshToken(): Promise<string | null> {
+    this.cachedToken = null;
+    return await this.getToken();
   }
 }
 

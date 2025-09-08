@@ -9,6 +9,7 @@ import logger from './utils/logger.js';
 import buildCommand from './commands/build.js';
 import newCommand from './commands/new.js';
 import loginCommand from './commands/login.js';
+import logoutCommand from './commands/logout.js';
 import listCommand from './commands/list.js';
 import previewCommand from './commands/preview.js';
 import updateCommand from './commands/update.js';
@@ -20,6 +21,7 @@ import themesCommand from './commands/themes.js';
 import initCommand from './commands/init.js';
 import pushCommand from './commands/push.js';
 import { checkForUpdates } from './utils/versionCheck.js';
+import authManager from './core/auth.js';
 
 const loadSavedSettings = async () => {
   try {
@@ -98,6 +100,7 @@ program.addCommand(pushCommand);
 program.addCommand(buildCommand);
 program.addCommand(newCommand);
 program.addCommand(loginCommand);
+program.addCommand(logoutCommand);
 program.addCommand(listCommand);
 program.addCommand(themesCommand);
 program.addCommand(previewCommand);
@@ -135,6 +138,42 @@ program.on('command:*', operands => {
 async function main(): Promise<void> {
   try {
     void checkForUpdates();
+    
+    const isLoginCommand = process.argv.includes('login');
+    const isLogoutCommand = process.argv.includes('logout');
+    const isHelpCommand = process.argv.includes('--help') || process.argv.includes('-h') || process.argv.includes('help');
+    const isVersionCommand = process.argv.includes('--version') || process.argv.includes('-v') || process.argv.includes('version');
+    if (!isLoginCommand && !isLogoutCommand && !isHelpCommand && !isVersionCommand) {
+      const hasToken = await authManager.isAuthenticated();
+      if (!hasToken) {
+        logger.error('Authentication required. Please login first.');
+        logger.info('Starting login process...');
+        
+        try {
+          await authManager.login();
+          logger.success('Authentication successful! You can now use the CLI.');
+        } catch (error) {
+          logger.error('Login failed:', error as Error);
+          logger.info('Please run "vitrin login" to authenticate manually.');
+          process.exit(1);
+        }
+      } else {
+        const isValid = await authManager.validateToken();
+        if (!isValid) {
+          logger.warn('Your session has expired. Please authenticate again.');
+          logger.info('Starting login process...');
+          
+          try {
+            await authManager.login();
+            logger.success('Re-authentication successful! You can now use the CLI.');
+          } catch (error) {
+            logger.error('Login failed:', error as Error);
+            logger.info('Please run "vitrin login" to authenticate manually.');
+            process.exit(1);
+          }
+        }
+      }
+    }
     
     if (process.argv.length === 2) {
       const { startTUI } = await import('./tui/index.js');

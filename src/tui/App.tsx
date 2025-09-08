@@ -7,8 +7,6 @@ import { ThemeManagerView } from './views/ThemeManagerView.js';
 import { BuildView } from './views/BuildView.js';
 import { PreviewWizard } from './views/PreviewWizard.js';
 import { SettingsView } from './views/SettingsView.js';
-import { LoginView } from './views/LoginView.js';
-import { AuthStatusView } from './views/AuthStatusView.js';
 import { NewThemeView } from './views/NewThemeView.js';
 import { DevStoresView } from './views/DevStoresView.js';
 import PushView from './views/PushView.js';
@@ -23,8 +21,6 @@ export type View =
   | 'build' 
   | 'preview'
   | 'settings'
-  | 'login'
-  | 'authstatus'
   | 'new'
   | 'devstores'
   | 'push';
@@ -188,32 +184,6 @@ export const App: React.FC = () => {
           <SettingsView
             onSave={() => navigateTo('dashboard')}
             onBack={() => navigateTo('dashboard')}
-          />
-        );
-      case 'login':
-        return (
-          <AuthStatusView
-            onBack={() => navigateTo('dashboard')}
-            onLogout={() => {
-              setState(prev => ({
-                ...prev,
-                isAuthenticated: false,
-                currentView: 'dashboard',
-              }));
-            }}
-          />
-        );
-      case 'authstatus':
-        return (
-          <AuthStatusView
-            onBack={() => navigateTo('dashboard')}
-            onLogout={() => {
-              setState(prev => ({
-                ...prev,
-                isAuthenticated: false,
-                currentView: 'dashboard',
-              }));
-            }}
           />
         );
       case 'new':

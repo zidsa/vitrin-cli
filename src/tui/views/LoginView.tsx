@@ -4,11 +4,11 @@ import Spinner from 'ink-spinner';
 import auth from '../../core/auth.js';
 
 interface LoginViewProps {
-  onSuccess: () => void;
+  onComplete: () => void;
   onBack: () => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onSuccess, onBack }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onComplete, onBack }) => {
   const [status, setStatus] = useState<'checking' | 'authenticated' | 'authenticating' | 'error'>('checking');
   const [error, setError] = useState<string | null>(null);
   const [authUrl] = useState('https://partner.zid.sa/cli/authorized');
@@ -29,42 +29,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess, onBack }) => {
 
   const startAuth = async () => {
     try {
-      const authModule = await import('../../core/auth.js');
-      const open = await import('open');
-      
-      await open.default(authUrl);
-      
-      const express = (await import('express')).default;
-      const app = express();
-      const port = 4444;
-      
-      const server = app.listen(port, () => {});
-      
-      app.get('/auth/callback', async (req, res) => {
-        const token = req.query.token as string;
-        
-        if (token) {
-          await authModule.default.setToken(token);
-          res.send('<html><body><h1>Authentication successful!</h1><p>You can close this window and return to the CLI.</p></body></html>');
-          server.close();
-          setStatus('authenticated');
-          setTimeout(onSuccess, 500);
-        } else {
-          res.status(400).send('No token provided');
-          server.close();
-          setError('Authentication failed - no token received');
-          setStatus('error');
-        }
-      });
-      
-      setTimeout(() => {
-        server.close();
-        if (status === 'authenticating') {
-          setError('Authentication timeout - please try again');
-          setStatus('error');
-        }
-      }, 120000);
-      
+      setStatus('authenticating');
+      await auth.login();
+      setStatus('authenticated');
+      setTimeout(onComplete, 500);
     } catch (err) {
       setError((err as Error).message);
       setStatus('error');

@@ -164,6 +164,27 @@ export class ApiService {
           const errorDetail = this.extractErrorMessage(error.response?.data);
           await auth.clearToken();
           
+          logger.warn('Your session has expired or is invalid.');
+          
+          const isInteractive = process.stdout.isTTY && !process.env.CI;
+          if (isInteractive) {
+            logger.info('Would you like to authenticate now? Starting login process...');
+            
+            try {
+              await auth.login();
+              logger.success('Re-authentication successful! Retrying your request...');
+              
+              const originalRequest = error.config;
+              const newToken = await auth.getToken();
+              if (newToken && originalRequest) {
+                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                return this.client.request(originalRequest);
+              }
+            } catch (loginError) {
+              logger.error('Re-authentication failed. Please run "vitrin login" manually.');
+            }
+          }
+          
           if (errorDetail && errorDetail.toLowerCase().includes('email')) {
             throw new Error(`Authentication failed: ${errorDetail}`);
           } else if (errorDetail) {

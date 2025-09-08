@@ -80,13 +80,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '👁️  Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
     { label: '🏪 View Dev Stores', value: 'devstores', key: '5', requiresAuth: true },
     { label: '📋 Manage Themes', value: 'themes', key: '6', requiresAuth: true },
-    { label: '🔐 Authentication', value: 'login', key: '7' },
-    { label: '⚙️  Settings', value: 'settings', key: '8' },
+    { label: '⚙️  Settings', value: 'settings', key: '7' },
     { label: '🚪 Exit', value: 'exit', key: 'q' },
   ];
 
   const availableItems = menuItems.filter(item => {
-    if (item.requiresAuth && !isAuthenticated) return false;
     if (item.requiresTheme && !currentTheme) return false;
     return true;
   });
@@ -158,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {isAuthenticated ? (
             <Text color="green">Authenticated ✓</Text>
           ) : (
-            <Text color="yellow">Not authenticated</Text>
+            <Text color="red">Not authenticated (Login required)</Text>
           )}
         </Text>
       </Box>
