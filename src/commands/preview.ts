@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { resolve, basename } from 'path';
 import { promises as fs } from 'fs';
+import open from 'open';
 import logger from '../utils/logger.js';
 import apiService from '../core/api.js';
 import auth from '../core/auth.js';
@@ -177,8 +178,11 @@ const previewCommand = new Command('preview')
             ? previewResponse.url
             : `https://${previewResponse.url}`;
           logger.info(`\n🌐 Preview URL: ${previewUrl}`);
+          logger.info('🌐 Opening preview in browser...');
+
+          await open(previewUrl);
         } catch (previewErr) {
-          logger.debug('Could not get preview URL');
+          logger.debug('Could not get preview URL or open browser');
         }
 
         logger.info(

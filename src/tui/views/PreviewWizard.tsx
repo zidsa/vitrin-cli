@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import Link from 'ink-link';
 import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
 import { ProgressBar } from '../components/ProgressBar.js';
 import apiService from '../../core/api.js';
 import { ThemeManager } from '../../core/theme.js';
+import open from 'open';
 
 interface PreviewWizardProps {
   themePath: string;
@@ -250,11 +252,17 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
         storeIdStr,
         installationResponse.id || null
       );
-      setPreviewUrl(previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`);
-      
+      const fullUrl = previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`;
+      setPreviewUrl(fullUrl);
+
       setProgress(100);
       setStatusMessage('Theme installed successfully!');
       setStep('complete');
+
+      setTimeout(() => {
+        open(fullUrl).catch(() => {
+        });
+      }, 500);
     } catch (err: any) {
       let errorMessage = 'Deployment failed';
       
@@ -454,7 +462,12 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
               <Text>Your theme is now live at:</Text>
             </Box>
             <Box marginTop={1}>
-              <Text color="cyan" underline>{previewUrl}</Text>
+              <Link url={previewUrl}>
+                <Text color="cyan" underline>{previewUrl}</Text>
+              </Link>
+            </Box>
+            <Box marginTop={1}>
+              <Text dimColor italic>Opening in browser...</Text>
             </Box>
             <Box marginTop={2}>
               <Text dimColor>[Enter/Space/Esc] Continue</Text>
