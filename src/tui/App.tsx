@@ -51,24 +51,34 @@ export const App: React.FC = () => {
       
       try {
         const { promises: fs } = await import('fs');
-        const { resolve } = await import('path');
-        
+        const { resolve, basename } = await import('path');
+
         const cwd = process.cwd();
-        const packageJsonPath = resolve(cwd, 'package.json');
-        
+        const layoutJinjaPath = resolve(cwd, 'layout.jinja');
+
         try {
-          const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
-          const assetsPath = resolve(cwd, 'assets');
-          const templatesPath = resolve(cwd, 'templates');
-          
+          await fs.access(layoutJinjaPath);
+
+          themeName = 'Current Theme';
+          themePath = cwd;
+
           try {
-            await fs.access(assetsPath);
-            await fs.access(templatesPath);
-            themeName = packageJson.name || 'Current Theme';
-            themePath = cwd;
+            const themeJsonPath = resolve(cwd, 'theme.json');
+            const themeJson = JSON.parse(await fs.readFile(themeJsonPath, 'utf-8'));
+            if (themeJson.name) {
+              themeName = typeof themeJson.name === 'object' ? themeJson.name.en : themeJson.name;
+            }
           } catch {
+            try {
+              const packageJsonPath = resolve(cwd, 'package.json');
+              const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+              themeName = packageJson.name || basename(cwd);
+            } catch {
+              themeName = basename(cwd);
+            }
           }
         } catch {
+          // layout.jinja doesn't exist, not a theme directory
         }
       } catch {
       }

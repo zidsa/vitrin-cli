@@ -102,24 +102,26 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       let themeJson: any;
       const themeJsonPath = join(themePath, 'theme.json');
       const packageJsonPath = join(themePath, 'package.json');
-      
+      const { basename } = await import('path');
+      const themeDirName = basename(themePath);
+
       if (existsSync(themeJsonPath)) {
         themeJson = JSON.parse(await fs.readFile(themeJsonPath, 'utf8'));
       } else if (existsSync(packageJsonPath)) {
         const pkg = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
         themeJson = {
-          name: { en: pkg.name || 'Theme', ar: pkg.name || 'Theme' },
+          name: { en: pkg.name || themeDirName, ar: pkg.name || themeDirName },
           description: { en: pkg.description || 'Theme', ar: pkg.description || 'Theme' },
           version: pkg.version || '1.0.0',
-          slug: pkg.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || `theme-${Date.now()}`,
+          slug: pkg.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || themeDirName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
           minimum_api_version: '1.0.0'
         };
       } else {
         themeJson = {
-          name: { en: 'Theme', ar: 'Theme' },
+          name: { en: themeDirName, ar: themeDirName },
           description: { en: 'Theme', ar: 'Theme' },
           version: '1.0.0',
-          slug: `theme-${Date.now()}`,
+          slug: themeDirName.toLowerCase().replace(/[^a-z0-9]/g, '-') || `theme-${Date.now()}`,
           minimum_api_version: '1.0.0'
         };
       }

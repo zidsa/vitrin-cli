@@ -83,7 +83,7 @@ export class BuildService {
       return false;
     }
 
-    const requiredFiles = ['package.json', 'layout.jinja'];
+    const requiredFiles = ['layout.jinja'];
 
     const missingFiles: string[] = [];
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2025-09-15
+### Added
+- Auto-open preview URLs in default browser after deployment
+- Ink Link component for proper clickable URLs in TUI mode
+
+### Fixed
+- Fixed preview URL wrapping issue in terminals causing broken links when Command+Click
+- Improved URL display in both TUI and CLI modes to prevent line wrapping
+
+### Changed
+- Theme validation now only requires `layout.jinja` file instead of both `package.json` and `layout.jinja`
+
 ## [1.0.5] - 2025-09-08
 ### Fixed
 - Fixed archiving on Windows machines
