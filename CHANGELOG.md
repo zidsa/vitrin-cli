@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-09-17
+### Added
+- Refresh preview functionality in TUI mode, press 'R' to re-preview theme without navigating back.
+- Visual indicator showing refresh option on preview success screen.
+
+### Fixed
+- Deprecated `substr` method replaced with `substring` in PreviewWizard.
+- Removed unused imports in App.tsx.
+
 ## [1.0.6] - 2025-09-15
 ### Added
 - Auto-open preview URLs in default browser after deployment

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useApp, useInput, useFocus } from 'ink';
+import { Box, Text, useApp, useInput } from 'ink';
 import BigText from 'ink-big-text';
 import Spinner from 'ink-spinner';
 import { Dashboard } from './views/Dashboard.js';
@@ -10,7 +10,6 @@ import { SettingsView } from './views/SettingsView.js';
 import { NewThemeView } from './views/NewThemeView.js';
 import PushView from './views/PushView.js';
 import auth from '../core/auth.js';
-import { ThemeManager } from '../core/theme.js';
 import { getVersion } from '../utils/getVersion.js';
 
 export type View = 

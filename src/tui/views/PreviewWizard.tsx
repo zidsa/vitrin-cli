@@ -88,8 +88,15 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
     if (key.escape || (input === 'q' && step !== 'uploading')) {
       onBack();
     }
-    if (step === 'complete' && (key.return || key.space || input)) {
-      onBack();
+    if (step === 'complete') {
+      if (input === 'r' || input === 'R') {
+        setStep('building');
+        setProgress(0);
+        setError(null);
+        handleStoreSelect(selectedStore!);
+      } else if (key.return || key.space) {
+        onBack();
+      }
     }
   });
 
@@ -183,7 +190,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
           const errorMsg = createErr.response?.data?.message || createErr.message;
           
           if (errorMsg?.includes('already exists') || errorMsg?.includes('duplicate')) {
-            const uniqueSlug = `${themeSlug}-${Math.random().toString(36).substr(2, 9)}`;
+            const uniqueSlug = `${themeSlug}-${Math.random().toString(36).substring(2, 11)}`;
             themeData.slug = uniqueSlug;
             const theme = await apiService.createTheme(themeData);
             finalThemeId = theme.id;
@@ -470,7 +477,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
               <Text dimColor italic>Opening in browser...</Text>
             </Box>
             <Box marginTop={2}>
-              <Text dimColor>[Enter/Space/Esc] Continue</Text>
+              <Text color="yellow">[R] Refresh Preview • [Enter/Space/Esc] Continue</Text>
             </Box>
           </Box>
         );
