@@ -39,6 +39,7 @@ const buildCommand = new Command('build')
         output: options.output,
         compression: parseInt(options.compression),
         exclude: options.exclude,
+        useTemp: false,
       };
 
       const outputPath = await buildService.zipTheme(

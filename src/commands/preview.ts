@@ -21,6 +21,9 @@ const previewCommand = new Command('preview')
   .option('--validate', 'Validate theme structure before previewing')
   .option('--new-theme', 'Force creation of a new theme (ignore cached)')
   .action(async (storeId: string | undefined, themePath: string, options) => {
+    let themeZipPath: string = '';
+    let shouldCleanup = false;
+
     try {
       await auth.requireAuth();
 
@@ -55,12 +58,12 @@ const previewCommand = new Command('preview')
         logger.success('✅ Theme structure is valid');
       }
 
-      let themeZipPath: string = '';
 
       if (options.build) {
         logger.loading('Building theme...');
         await buildService.removeDSStore(resolvedPath);
         themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+        shouldCleanup = true;
         logger.success('✅ Theme built successfully');
       } else {
         const possiblePaths = [
@@ -85,6 +88,7 @@ const previewCommand = new Command('preview')
           logger.info('Building theme package...');
           await buildService.removeDSStore(resolvedPath);
           themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+          shouldCleanup = true;
         }
       }
 
@@ -151,7 +155,14 @@ const previewCommand = new Command('preview')
           }
         );
         logger.success('✅ Upload complete');
+
+        if (shouldCleanup && themeZipPath) {
+          await buildService.cleanupZipFile(themeZipPath);
+        }
       } catch (error) {
+        if (shouldCleanup && themeZipPath) {
+          await buildService.cleanupZipFile(themeZipPath);
+        }
         logger.error('Failed to finalize:', error as Error);
         process.exit(1);
       }
@@ -203,6 +214,9 @@ const previewCommand = new Command('preview')
         }
       }
     } catch (error) {
+      if (shouldCleanup && themeZipPath) {
+        await buildService.cleanupZipFile(themeZipPath);
+      }
       if (
         error instanceof Error &&
         error.message.includes('Authentication required')

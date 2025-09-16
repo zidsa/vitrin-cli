@@ -153,14 +153,15 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
     themeNameBase: string,
     resolvedPath: string
   ) => {
+    let themeZipPath: string | null = null;
     try {
       setStatusMessage('Building theme...');
       setProgress(0);
-      
+
       const buildService = (await import('../../utils/build.js')).default;
-      
+
       await buildService.removeDSStore(resolvedPath);
-      const themeZipPath = await buildService.zipTheme(themeNameBase, resolvedPath);
+      themeZipPath = await buildService.zipTheme(themeNameBase, resolvedPath);
       
       setProgress(20);
       
@@ -226,8 +227,10 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
         versionData.upload_fields,
         themeZipPath
       );
-      
+
       setProgress(60);
+
+      await buildService.cleanupZipFile(themeZipPath);
       
       setStatusMessage('Finalizing upload...');
       await apiService.notifyArtifactUpload(
@@ -271,8 +274,13 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
         });
       }, 500);
     } catch (err: any) {
+      if (themeZipPath) {
+        const buildService = (await import('../../utils/build.js')).default;
+        await buildService.cleanupZipFile(themeZipPath);
+      }
+
       let errorMessage = 'Deployment failed';
-      
+
       if (err.message?.includes('Not authenticated')) {
         errorMessage = err.message;
       } else if (err.response?.status === 403) {
@@ -284,7 +292,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       setStep('error');
     }

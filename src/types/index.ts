@@ -84,6 +84,7 @@ export interface BuildOptions {
   output?: string;
   exclude?: string[];
   compression?: number;
+  useTemp?: boolean;
 }
 
 export interface PreviewOptions {

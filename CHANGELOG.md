@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refresh preview functionality in TUI mode, press 'R' to re-preview theme without navigating back.
 - Visual indicator showing refresh option on preview success screen.
 
+### Changed
+- Theme zip files are now created in the system's temporary directory instead of the theme directory during preview/push operations.
+- Automatic cleanup of temporary zip files after upload completion or errors.
+
 ### Fixed
 - Deprecated `substr` method replaced with `substring` in PreviewWizard.
 - Removed unused imports in App.tsx.

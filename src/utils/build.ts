@@ -1,5 +1,6 @@
-import { createReadStream, createWriteStream, promises as fs } from 'fs';
+import { createWriteStream, promises as fs } from 'fs';
 import { join, basename, dirname, resolve } from 'path';
+import { tmpdir } from 'os';
 import archiver from 'archiver';
 import logger from './logger.js';
 import type { BuildOptions } from '../types/index.js';
@@ -22,8 +23,8 @@ export class BuildService {
     options: BuildOptions = {}
   ): Promise<string> {
     const resolvedPath = resolve(buildPath);
-    const outputDir = options.output || process.cwd();
-    const outputPath = join(outputDir, `${buildName}.zip`);
+    const outputDir = options.output || (options.useTemp !== false ? tmpdir() : process.cwd());
+    const outputPath = join(outputDir, `${buildName}-${Date.now()}.zip`);
 
     await fs.mkdir(dirname(outputPath), { recursive: true });
 
@@ -138,6 +139,15 @@ export class BuildService {
         version: '1.0.0',
         description: 'Theme built with Vitrin CLI',
       };
+    }
+  }
+
+  async cleanupZipFile(zipPath: string): Promise<void> {
+    try {
+      await fs.unlink(zipPath);
+      logger.debug(`Cleaned up temporary zip file: ${zipPath}`);
+    } catch (error) {
+      logger.debug(`Failed to clean up zip file: ${zipPath} - ${error}`);
     }
   }
 }
