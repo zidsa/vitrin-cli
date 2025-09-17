@@ -15,11 +15,10 @@ import previewCommand from './commands/preview.js';
 import updateCommand from './commands/update.js';
 import versionCommand from './commands/version.js';
 import activateCommand from './commands/activate.js';
-import installCommand from './commands/install.js';
 import uiCommand from './commands/ui.js';
 import themesCommand from './commands/themes.js';
-import initCommand from './commands/init.js';
 import pushCommand from './commands/push.js';
+import linkCommand from './commands/link.js';
 import { checkForUpdates } from './utils/versionCheck.js';
 import authManager from './core/auth.js';
 
@@ -95,7 +94,6 @@ program.hook('preAction', thisCommand => {
   }
 });
 program.addCommand(uiCommand);
-program.addCommand(initCommand);
 program.addCommand(pushCommand);
 program.addCommand(buildCommand);
 program.addCommand(newCommand);
@@ -107,7 +105,7 @@ program.addCommand(previewCommand);
 program.addCommand(updateCommand);
 program.addCommand(versionCommand);
 program.addCommand(activateCommand);
-program.addCommand(installCommand);
+program.addCommand(linkCommand);
 
 program.on('--help', () => {
   console.log('');
@@ -124,6 +122,7 @@ program.on('--help', () => {
   console.log('  $ vitrin themes list        List server themes');
   console.log('  $ vitrin update <id>        Update theme version');
   console.log('  $ vitrin push               Push theme to Zid');
+  console.log('  $ vitrin link <id>          Link directory to theme');
   console.log('');
   console.log('For command details:');
   console.log('  $ vitrin <command> --help');

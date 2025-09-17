@@ -18,7 +18,6 @@ export async function createThemeFromTemplate(
 
   const resolvedPath = resolve(process.cwd(), targetDir || themeName);
 
-  // Check if directory already exists
   try {
     await fs.access(resolvedPath);
     throw new Error(`Directory already exists: ${resolvedPath}`);
@@ -69,8 +68,7 @@ export async function createThemeFromTemplate(
 
   await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-  // Create README
-  const readmeContent = `# ${themeName}
+  const readmeContent =`# ${themeName}
 
 A Zid theme created with Vitrin CLI based on the Soft Theme template.
 
@@ -140,14 +138,12 @@ For support, please contact the theme developer or visit the Vitrin CLI document
 
   await fs.writeFile(join(resolvedPath, 'README.md'), readmeContent);
 
-  // Initialize theme configuration
   const themeManager = new ThemeManager(resolvedPath);
   await themeManager.init({
     name: themeName,
     createdAt: new Date().toISOString(),
   });
 
-  // Initialize git if not skipped
   if (!skipGit) {
     try {
       const { spawnSync: gitInitSpawn } = await import('child_process');

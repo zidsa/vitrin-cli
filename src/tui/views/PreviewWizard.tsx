@@ -265,6 +265,21 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       const fullUrl = previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`;
       setPreviewUrl(fullUrl);
 
+      const themeManager = new ThemeManager(themePath);
+      const config = await themeManager.getConfig();
+      const installations = config.installations || [];
+
+      installations.push({
+        id: installationResponse.id,
+        store_id: storeIdStr,
+        store_name: store.name,
+        installed_at: new Date().toISOString(),
+        version: versionData.theme_version.version,
+      });
+
+      const updatedInstallations = installations.slice(-10);
+      await themeManager.updateConfig({ installations: updatedInstallations });
+
       setProgress(100);
       setStatusMessage('Theme installed successfully!');
       setStep('complete');

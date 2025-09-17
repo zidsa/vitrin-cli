@@ -12,6 +12,7 @@ export interface ThemeConfig {
   defaultStore?: string;
   createdAt?: string;
   updatedAt?: string;
+  installations?: Installation[];
 }
 
 export interface PushRecord {
@@ -20,6 +21,16 @@ export interface PushRecord {
   version: string;
   pushedAt: string;
   store?: string;
+}
+
+export interface Installation {
+  id: string;
+  store_id: string;
+  store_name: string;
+  installed_at: string;
+  version?: string;
+  activated?: boolean;
+  activated_at?: string;
 }
 
 export class ThemeManager {
@@ -104,6 +115,16 @@ export class ThemeManager {
       this.config.slug = slug;
     }
     this.config.updatedAt = new Date().toISOString();
+    await this.save();
+  }
+
+  async updateConfig(updates: Partial<ThemeConfig>): Promise<void> {
+    await this.load();
+    this.config = {
+      ...this.config,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
     await this.save();
   }
 

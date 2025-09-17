@@ -56,30 +56,6 @@ Listening for authentication callback on http://localhost:4444/auth/callback
 Token saved to ~/.vitrin/config.json
 ```
 
-### Initialize Theme
-
-```bash
-vitrin init [path] [options]
-```
-
-Initializes a Vitrin theme configuration in an existing directory.
-
-**Options:**
-- `-n, --name <name>` - Theme name
-- `--link <theme-id>` - Link to existing theme by ID
-
-**Example:**
-```
-$ vitrin init
-✓ Theme configuration initialized
-
-📚 Theme initialized successfully!
-
-Next steps:
-  1. Build your theme: vitrin build
-  2. Push to Zid: vitrin push
-```
-
 ### Theme Creation
 
 ```bash
@@ -124,6 +100,43 @@ $ vitrin push --store dev@example.com --activate
 Theme ID: abc123
 Version: 1.0.0
 ```
+
+### Link Theme Directory
+
+```bash
+vitrin link [theme-id] [options]
+```
+
+Link or unlink current directory to a Zid theme. Useful for managing multiple themes with the same codebase.
+
+**Options:**
+- `-p, --path <path>` - Path to theme directory (default: current)
+- `-f, --force` - Force link even if already linked to another theme
+- `-s, --show` - Show current linked theme
+
+**Examples:**
+```
+# Show current linked theme
+$ vitrin link --show
+📎 Currently linked to theme: theme-123
+
+# Link to a theme
+$ vitrin link theme-456
+✅ Linked to theme: theme-456
+
+# Switch to a different theme
+$ vitrin link theme-789 --force
+✅ Switched from theme theme-456 to theme-789
+
+# Unlink from theme
+$ vitrin link
+✅ Unlinked from theme: theme-789
+```
+
+**Use Cases:**
+- Work with same codebase for multiple themes
+- Switch between development and production themes
+- Share codebase across different stores
 
 ### Building Themes
 

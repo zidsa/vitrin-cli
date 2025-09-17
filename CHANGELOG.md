@@ -5,18 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.7] - 2025-09-17
+## [1.0.7] - 2025-09-18
 ### Added
 - Refresh preview functionality in TUI mode, press 'R' to re-preview theme without navigating back.
 - Visual indicator showing refresh option on preview success screen.
+- New `vitrin link` command to manage theme linking - link, unlink, or switch between different Zid themes.
+- Link/Unlink Theme option in TUI dashboard for managing theme connections.
+- Fully functional Activate Theme option in TUI that works with previously previewed installations.
+- Installation tracking system that saves installation IDs after preview for easy activation.
 
 ### Changed
 - Theme zip files are now created in the system's temporary directory instead of the theme directory during preview/push operations.
 - Automatic cleanup of temporary zip files after upload completion or errors.
+- Activate command in TUI now shows stores with available installations and allows one-click activation.
+- Activate command now automatically installs the theme if no previous installation exists on the selected store.
+- Unified navigation hints across all TUI views (Esc/q to go back).
 
 ### Fixed
 - Deprecated `substr` method replaced with `substring` in PreviewWizard.
 - Removed unused imports in App.tsx.
+
+### Removed
+- Removed `vitrin install` command as it's redundant with preview/activate workflow.
+- Removed `vitrin init` command - use `vitrin link` instead for existing directories.
 
 ## [1.0.6] - 2025-09-15
 ### Added

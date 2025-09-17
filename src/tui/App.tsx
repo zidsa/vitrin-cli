@@ -9,18 +9,22 @@ import { PreviewWizard } from './views/PreviewWizard.js';
 import { SettingsView } from './views/SettingsView.js';
 import { NewThemeView } from './views/NewThemeView.js';
 import PushView from './views/PushView.js';
+import { ActivateView } from './views/ActivateView.js';
+import { LinkView } from './views/LinkView.js';
 import auth from '../core/auth.js';
 import { getVersion } from '../utils/getVersion.js';
 
-export type View = 
+export type View =
   | 'splash'
-  | 'dashboard' 
-  | 'themes' 
-  | 'build' 
+  | 'dashboard'
+  | 'themes'
+  | 'build'
   | 'preview'
   | 'settings'
   | 'new'
-  | 'push';
+  | 'push'
+  | 'activate'
+  | 'link';
 
 interface AppState {
   currentView: View;
@@ -77,7 +81,6 @@ export const App: React.FC = () => {
             }
           }
         } catch {
-          // layout.jinja doesn't exist, not a theme directory
         }
       } catch {
       }
@@ -196,6 +199,34 @@ export const App: React.FC = () => {
       case 'new':
         return (
           <NewThemeView
+            onComplete={(themeName, themePath) => {
+              if (themeName && themePath) {
+                setState(prev => ({
+                  ...prev,
+                  currentTheme: themeName,
+                  currentThemePath: themePath,
+                  currentView: 'dashboard',
+                }));
+              } else {
+                navigateTo('dashboard');
+              }
+            }}
+            onBack={() => navigateTo('dashboard')}
+          />
+        );
+      case 'activate':
+        return (
+          <ActivateView
+            themePath={state.currentThemePath}
+            themeName={state.currentTheme}
+            onComplete={() => navigateTo('dashboard')}
+            onBack={() => navigateTo('dashboard')}
+          />
+        );
+      case 'link':
+        return (
+          <LinkView
+            themePath={state.currentThemePath}
             onComplete={(themeName, themePath) => {
               if (themeName && themePath) {
                 setState(prev => ({

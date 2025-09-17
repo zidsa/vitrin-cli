@@ -17,7 +17,7 @@ interface DashboardProps {
 
 interface MenuItem {
   label: string;
-  value: View | 'exit';
+  value: View | 'activate' | 'link' | 'exit';
   key: string;
   requiresAuth?: boolean;
   requiresTheme?: boolean;
@@ -78,8 +78,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '🚀 Push to Zid', value: 'push', key: '2', requiresTheme: true },
     { label: '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
     { label: '👁️  Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
-    { label: '📋 Manage Themes', value: 'themes', key: '5', requiresAuth: true },
-    { label: '⚙️  Settings', value: 'settings', key: '6' },
+    { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true },
+    { label: '🔗 Link/Unlink Theme', value: 'link', key: '6' },
+    { label: '📋 Manage Themes', value: 'themes', key: '7', requiresAuth: true },
+    { label: '⚙️  Settings', value: 'settings', key: '8' },
     { label: '🚪 Exit', value: 'exit', key: 'q' },
   ];
 
@@ -95,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   });
 
-  const handleSelect = (item: { value: View | 'new' | 'push' | 'exit' }) => {
+  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'exit' }) => {
     if (item.value === 'exit') {
       process.exit(0);
     } else {
@@ -188,7 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <Box marginTop={1}>
         <Text dimColor>
-          Use arrow keys to navigate • Press number/letter for quick access • q to quit
+          Arrow keys to navigate • Number/letter for quick access • q to quit
         </Text>
       </Box>
     </Box>
