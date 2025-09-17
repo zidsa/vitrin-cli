@@ -239,15 +239,15 @@ async function pushTheme(options: PushOptions): Promise<void> {
       spinner.start(`Installing theme on store ${options.store}...`);
       const storesResponse = await api.getDevStores();
       const targetStore = storesResponse.stores.find(
-        s => s.email === options.store
+        s => s.store_id === options.store
       );
 
       if (!targetStore) {
-        throw new Error(`Store with email ${options.store} not found`);
+        throw new Error(`Store with ID ${options.store} not found`);
       }
 
       const installation = await api.installTheme(
-        String(targetStore.id),
+        options.store,
         theme.id,
         versionData.id
       );
@@ -256,7 +256,7 @@ async function pushTheme(options: PushOptions): Promise<void> {
       if (options.activate) {
         spinner.start('Activating theme...');
         try {
-          await api.activateTheme(String(targetStore.id), installation.id);
+          await api.activateTheme(options.store, installation.id);
           spinner.succeed('Theme activated successfully');
         } catch (error) {
           spinner.warn('Failed to activate theme');
@@ -276,7 +276,7 @@ async function pushTheme(options: PushOptions): Promise<void> {
 
 const pushCommand = new Command('push')
   .description('Build and push theme to Zid server')
-  .option('-s, --store <email>', 'Dev store email to install on')
+  .option('-s, --store <id>', 'Dev store ID to install on')
   .option('-a, --activate', 'Activate theme after installation')
   .option(
     '-v, --version <version>',

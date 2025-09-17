@@ -37,7 +37,7 @@ const previewCommand = new Command('preview')
 
       if (!storeId) {
         logger.error('No store ID provided and no default store set.');
-        logger.info('Provide a store ID or use vitrin push --store <email>');
+        logger.info('Provide a store ID or use vitrin push --store <id>');
         process.exit(1);
       }
 

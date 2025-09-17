@@ -16,6 +16,7 @@ interface ActivateViewProps {
 
 interface Store {
   id: string;
+  store_id: string;
   name: string;
   email?: string;
   store_link?: string;
@@ -145,7 +146,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
       setStatusMessage('Installing on store...');
 
       const installResponse = await api.installTheme(
-        String(store.id),
+        String(store.store_id),
         config.id,
         versionData.theme_version.id
       );
@@ -153,7 +154,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
       const installations = config.installations || [];
       installations.push({
         id: installResponse.id,
-        store_id: String(store.id),
+        store_id: String(store.store_id),
         store_name: store.name,
         installed_at: new Date().toISOString(),
         version: versionData.theme_version.version,
@@ -164,7 +165,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
       setStatusMessage('Activating theme...');
       setStep('activating');
 
-      await api.activateTheme(String(store.id), installResponse.id);
+      await api.activateTheme(String(store.store_id), installResponse.id);
 
       logger.success(`✅ Theme installed and activated on ${store.name}!`);
       setTimeout(onComplete, 1500);
@@ -186,7 +187,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
     setSelectedStore(store);
 
     const storeInstallations = installations.filter(inst =>
-      inst.store_id === String(store.id)
+      inst.store_id === String(store.store_id)
     );
 
     if (storeInstallations.length === 0) {
@@ -205,7 +206,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
       setActivating(true);
 
       try {
-        await api.activateTheme(String(store.id), latestInstallation.id);
+        await api.activateTheme(String(store.store_id), latestInstallation.id);
 
         logger.success(`✅ Theme activated on ${store.name}!`);
 
@@ -296,7 +297,7 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
 
   if (step === 'select-store') {
     const storeItems = stores.map(store => {
-      const storeInstalls = installations.filter(inst => inst.store_id === String(store.id));
+      const storeInstalls = installations.filter(inst => inst.store_id === String(store.store_id));
       const latestInstall = storeInstalls.sort((a, b) =>
         new Date(b.installed_at).getTime() - new Date(a.installed_at).getTime()
       )[0];

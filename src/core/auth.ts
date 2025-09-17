@@ -5,7 +5,6 @@ import express from 'express';
 import cors from 'cors';
 import open from 'open';
 import logger from '../utils/logger.js';
-import type { Partner } from '../types/index.js';
 
 const CONFIG_DIR = join(homedir(), '.vitrin');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
@@ -93,7 +92,18 @@ export class AuthManager {
       });
 
       const app = express();
-      app.use(cors());
+
+      app.use(express.json());
+      app.use(express.urlencoded({ extended: true }));
+
+      app.use(cors({
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-partner-token'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204
+      }));
 
       const server = app.listen(port, () => {
         logger.info(
@@ -106,10 +116,68 @@ export class AuthManager {
         reject(new Error('Authentication timeout'));
       }, 600000);
 
+      app.options('/auth/callback', (_req: any, res: any) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-partner-token');
+        res.sendStatus(204);
+      });
+
       app.get('/auth/callback', async (req: any, res: any) => {
         clearTimeout(timeout);
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Credentials', 'true');
 
         const authToken = req.query.token;
+
+        if (authToken && typeof authToken === 'string') {
+          const success = await this.setToken(authToken);
+
+          if (success) {
+            res.send(`
+              <html>
+                <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                  <h1 style="color: #28a745;">✓ Authentication Successful!</h1>
+                  <p>You can now close this window and return to your terminal.</p>
+                </body>
+              </html>
+            `);
+            logger.success('Authentication successful!');
+            server.close();
+            resolve();
+          } else {
+            res.send(`
+              <html>
+                <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                  <h1 style="color: #dc3545;">✗ Authentication Failed</h1>
+                  <p>Failed to save authentication token. Please try again.</p>
+                </body>
+              </html>
+            `);
+            server.close();
+            reject(new Error('Failed to save token'));
+          }
+        } else {
+          res.send(`
+            <html>
+              <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                <h1 style="color: #dc3545;">✗ Authentication Failed</h1>
+                <p>Invalid or missing authentication token.</p>
+              </body>
+            </html>
+          `);
+          logger.error('Authentication failed - invalid token');
+          server.close();
+          reject(new Error('Invalid authentication token'));
+        }
+      });
+
+      app.post('/auth/callback', async (req: any, res: any) => {
+        clearTimeout(timeout);
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Credentials', 'true');
+
+        const authToken = req.body?.token || req.query.token;
 
         if (authToken && typeof authToken === 'string') {
           const success = await this.setToken(authToken);

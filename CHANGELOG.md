@@ -20,10 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Activate command in TUI now shows stores with available installations and allows one-click activation.
 - Activate command now automatically installs the theme if no previous installation exists on the selected store.
 - Unified navigation hints across all TUI views (Esc/q to go back).
+- **BREAKING**: Changed `--store` option from accepting email to accepting store ID for more reliable store identification
+- Dev stores API now uses `store_id` field instead of the pivot table `id` field
+- Updated all store references throughout the codebase to use the actual store ID
+
 
 ### Fixed
 - Deprecated `substr` method replaced with `substring` in PreviewWizard.
 - Removed unused imports in App.tsx.
+- Fixed confusion between pivot table ID and actual store ID when working with dev stores
+- Fixed CORS issues with authentication callback server to properly handle preflight requests from partner dashboard
+- Added support for POST requests to authentication callback endpoint
 
 ### Removed
 - Removed `vitrin install` command as it's redundant with preview/activate workflow.

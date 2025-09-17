@@ -20,6 +20,7 @@ type WizardStep = 'select-store' | 'select-theme' | 'building' | 'uploading' | '
 
 interface DevStore {
   id: string | number;
+  store_id: string;
   name: string;
   email: string;
   link?: string;
@@ -247,7 +248,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       setStatusMessage('Installing on store...');
       setProgress(75);
       
-      const storeIdStr = String(store.id);
+      const storeIdStr = String(store.store_id);
       const installationResponse = await apiService.installTheme(
         storeIdStr,
         finalThemeId!,
@@ -421,7 +422,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
               items={stores.map((store, index) => ({
                 label: `${store.name} (${store.email})`,
                 value: store,
-                key: `preview-store-${store.id}-${index}`,
+                key: `preview-store-${store.store_id}-${index}`,
               }))}
               onSelect={(item: any) => handleStoreSelect(item.value as DevStore)}
               indicatorComponent={({ isSelected }: any) => (

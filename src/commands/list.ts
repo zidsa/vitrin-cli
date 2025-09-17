@@ -91,7 +91,7 @@ const listCommand = new Command('list')
               console.log('-'.repeat(80));
 
               for (const store of storesResponse.stores) {
-                const id = (store.id || '').toString();
+                const id = (store.store_id || '').toString();
                 const name = (store.name || '').toString();
                 const email = (store.email || '').toString();
                 const domain = (store.domain || '').toString();

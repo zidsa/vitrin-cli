@@ -88,14 +88,14 @@ vitrin push [options]
 Builds and pushes your theme to Zid servers, creating or updating the theme.
 
 **Options:**
-- `-s, --store <email>` - Dev store email to install on
+- `-s, --store <id>` - Dev store ID to install on
 - `-a, --activate` - Activate theme after installation
 - `-v, --version <version>` - Version number (default: from theme.json)
 - `-c, --changelog <text>` - Version changelog
 
 **Example:**
 ```
-$ vitrin push --store dev@example.com --activate
+$ vitrin push --store 123456 --activate
 ✅ Theme pushed successfully!
 Theme ID: abc123
 Version: 1.0.0

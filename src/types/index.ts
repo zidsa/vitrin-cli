@@ -66,7 +66,8 @@ export interface StoreTheme {
 }
 
 export interface DevStore {
-  id: string;
+  id: string; // pivot table id (deprecated - use store_id instead)
+  store_id: string; // actual store id
   name: string;
   email: string;
   domain: string;

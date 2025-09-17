@@ -16,6 +16,7 @@ interface PushViewProps {
 }
 
 interface DevStore {
+  store_id: string;
   email: string;
   name: string;
 }
@@ -76,6 +77,7 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       setStatus('Loading dev stores...');
       const response = await api.getDevStores();
       const storeList = response.stores.map((store: any) => ({
+        store_id: store.store_id,
         email: store.email,
         name: store.name
       }));
@@ -246,25 +248,30 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       }
       addLog('✅ Theme uploaded successfully');
       
-      await themeManager.recordPush({
+      const pushRecord: any = {
         themeId: theme.id,
         versionId: versionData.id,
         version: versionData.version,
-        pushedAt: new Date().toISOString(),
-        store: selectedStore
-      });
+        pushedAt: new Date().toISOString()
+      };
+
+      if (selectedStore && selectedStore !== 'none') {
+        const targetStore = stores.find(s => s.store_id === selectedStore);
+        pushRecord.store = targetStore?.name || selectedStore;
+      }
+
+      await themeManager.recordPush(pushRecord);
       
       if (selectedStore && selectedStore !== 'none') {
-        addLog(`🏪 Installing on store ${selectedStore}...`);
-        const storesResponse = await api.getDevStores();
-        const targetStore = storesResponse.stores.find(s => s.email === selectedStore);
-        
+        const targetStore = stores.find(s => s.store_id === selectedStore);
+        addLog(`🏪 Installing on store ${targetStore?.name || selectedStore}...`);
+
         if (!targetStore) {
-          throw new Error(`Store with email ${selectedStore} not found`);
+          throw new Error(`Store with ID ${selectedStore} not found`);
         }
-        
+
         await api.installTheme(
-          String(targetStore.id),
+          selectedStore,
           theme.id,
           versionData.id
         );
@@ -338,7 +345,7 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       { label: '🚀 Push without installing', value: 'none' },
       ...stores.map(store => ({
         label: `🏪 ${store.name} (${store.email})`,
-        value: store.email
+        value: store.store_id
       })),
       { label: '← Back', value: 'back' }
     ];
