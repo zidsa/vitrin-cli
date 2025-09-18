@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import SelectInput from 'ink-select-input';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import apiService from '../../core/api.js';
@@ -10,13 +9,13 @@ interface ThemeManagerViewProps {
   onBack: () => void;
 }
 
-type ViewMode = 'list' | 'actions' | 'edit' | 'delete' | 'loading' | 'error' | 'success';
+type ViewMode = 'list' | 'edit' | 'delete' | 'archive' | 'loading' | 'error' | 'success';
 
 export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) => {
   const [mode, setMode] = useState<ViewMode>('loading');
   const [themes, setThemes] = useState<any[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [editName, setEditName] = useState('');
@@ -31,7 +30,7 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
     try {
       setMode('loading');
       setMessage('Loading themes...');
-      
+
       const isAuth = await auth.isAuthenticated();
       if (!isAuth) {
         setError('Not authenticated. Please login first.');
@@ -40,7 +39,7 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
       }
 
       const response = await apiService.getThemes({ page_size: 100 });
-      
+
       if (!response.results || response.results.length === 0) {
         setError('No themes found. Create one first.');
         setMode('error');
@@ -57,10 +56,37 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
 
   useInput((input, key) => {
     if (key.escape) {
-      if (mode === 'actions' || mode === 'edit' || mode === 'delete') {
+      if (mode === 'edit' || mode === 'delete' || mode === 'archive') {
         setMode('list');
+      } else if (mode === 'error') {
+        if (error && error.includes('installed on stores')) {
+          setMode('list');
+        } else {
+          onBack();
+        }
       } else {
         onBack();
+      }
+    }
+
+    if (mode === 'error' && (input === 'a' || input === 'A')) {
+      if (error && error.includes('installed on stores') && selectedTheme) {
+        setError(null);
+        setMode('archive');
+      }
+    }
+
+    if (mode === 'list' && themes.length > 0) {
+      if (input === 'e' || input === 'E') {
+        handleQuickEdit(themes[selectedIndex]);
+      } else if (input === 'd' || input === 'D') {
+        handleQuickDelete(themes[selectedIndex]);
+      } else if (input === 'a' || input === 'A') {
+        handleQuickArchive(themes[selectedIndex]);
+      } else if (key.upArrow) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : themes.length - 1));
+      } else if (key.downArrow) {
+        setSelectedIndex((prev) => (prev < themes.length - 1 ? prev + 1 : 0));
       }
     }
 
@@ -72,11 +98,15 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
       }
     }
 
-    if (mode === 'delete') {
-      if (input === 'y' || input === 'Y') {
-        handleDeleteConfirm();
-      } else if (input === 'n' || input === 'N') {
-        setMode('actions');
+    if (mode === 'delete' || mode === 'archive') {
+      if (input === 'y' || input === 'Y' || key.return) {
+        if (mode === 'delete') {
+          handleDeleteConfirm();
+        } else if (mode === 'archive') {
+          handleArchiveConfirm();
+        }
+      } else if (input === 'n' || input === 'N' || key.escape) {
+        setMode('list');
       }
     }
 
@@ -85,33 +115,32 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
     }
   });
 
-  const handleThemeSelect = (theme: any) => {
+  const handleQuickEdit = (theme: any) => {
     setSelectedTheme(theme);
-    setMode('actions');
+    const name = typeof theme.name === 'object'
+      ? (theme.name.en || '')
+      : theme.name;
+    const desc = typeof theme.description === 'object'
+      ? (theme.description.en || '')
+      : (theme.description || '');
+
+    setEditName(name);
+    setEditDescription(desc);
+    setEditField('name');
+    setMode('edit');
   };
 
-  const handleActionSelect = (action: string) => {
-    if (action === 'edit') {
-      const name = typeof selectedTheme.name === 'object' 
-        ? (selectedTheme.name.en || '') 
-        : selectedTheme.name;
-      const desc = typeof selectedTheme.description === 'object'
-        ? (selectedTheme.description.en || '')
-        : (selectedTheme.description || '');
-      
-      setEditName(name);
-      setEditDescription(desc);
-      setEditField('name');
-      setMode('edit');
-    } else if (action === 'delete') {
-      setMode('delete');
-    } else if (action === 'back') {
-      setMode('list');
-    }
+  const handleQuickDelete = (theme: any) => {
+    setSelectedTheme(theme);
+    setMode('delete');
+  };
+
+  const handleQuickArchive = (theme: any) => {
+    setSelectedTheme(theme);
+    setMode('archive');
   };
 
   const handleEditSave = async () => {
-    setLoading(true);
     setMessage('Updating theme...');
     
     try {
@@ -119,35 +148,69 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         name: { en: editName },
         description: { en: editDescription }
       });
-      
+
       setMessage(`✅ Theme "${editName}" updated successfully!`);
       setMode('success');
     } catch (err: any) {
       setError(err.message || 'Failed to update theme');
       setMode('error');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    setLoading(true);
     setMessage('Deleting theme...');
-    
+
     try {
       await apiService.deleteTheme(selectedTheme.id);
-      
-      const name = typeof selectedTheme.name === 'object' 
-        ? selectedTheme.name.en 
+
+      const name = typeof selectedTheme.name === 'object'
+        ? selectedTheme.name.en
         : selectedTheme.name;
-      
+
       setMessage(`✅ Theme "${name}" deleted successfully!`);
       setMode('success');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete theme');
+      const errorMsg = err.message || 'Failed to delete theme';
+      if (errorMsg.includes('installed in stores') || errorMsg.includes('Cannot delete')) {
+        setError('This theme is installed on stores. Use [A] to archive it instead.');
+      } else {
+        setError(errorMsg);
+      }
       setMode('error');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    setMessage('Archiving theme...');
+
+    try {
+      if (selectedTheme.latest_version) {
+        await apiService.updateThemeVersionStatus(
+          selectedTheme.id,
+          selectedTheme.latest_version.id,
+          'archived'
+        );
+      } else {
+        const details = await apiService.getTheme(selectedTheme.id);
+        if (details.versions && details.versions.length > 0) {
+          const latestVersion = details.versions[0];
+          await apiService.updateThemeVersionStatus(
+            selectedTheme.id,
+            latestVersion.id,
+            'archived'
+          );
+        }
+      }
+
+      const name = typeof selectedTheme.name === 'object'
+        ? selectedTheme.name.en
+        : selectedTheme.name;
+
+      setMessage(`✅ Theme "${name}" archived successfully!`);
+      setMode('success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to archive theme');
+      setMode('error');
     }
   };
 
@@ -165,62 +228,86 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         return (
           <Box flexDirection="column">
             <Box marginBottom={1}>
-              <Text bold>Select a theme to manage:</Text>
+              <Text bold>Your themes ({themes.length}):</Text>
             </Box>
-            <SelectInput
-              items={themes.map((theme, index) => ({
-                label: `${typeof theme.name === 'object' ? theme.name.en : theme.name} (${theme.id})`,
-                value: theme,
-                key: `theme-${theme.id}-${index}`,
-              }))}
-              onSelect={(item) => handleThemeSelect(item.value)}
-              indicatorComponent={({ isSelected }: any) => (
-                <Text color="cyan">{isSelected ? '▶' : ' '}</Text>
-              )}
-              itemComponent={({ label, isSelected }: any) => (
-                <Text color={isSelected ? 'cyan' : 'white'}>{label}</Text>
-              )}
-            />
-            <Box marginTop={1}>
-              <Text dimColor>[↑↓] Navigate • [Enter] Select • [Esc] Back</Text>
-            </Box>
-          </Box>
-        );
 
-      case 'actions':
-        const themeName = typeof selectedTheme.name === 'object' 
-          ? selectedTheme.name.en 
-          : selectedTheme.name;
-        
-        return (
-          <Box flexDirection="column">
-            <Box marginBottom={1}>
-              <Text bold>
-                Theme: {themeName} ({selectedTheme.id})
-              </Text>
+            <Box>
+              <Text color="gray">   ┌─────────────────────────┬──────────────────────────────────────┬────────────┐</Text>
             </Box>
-            <Box marginBottom={1}>
-              <Text dimColor>
-                Created: {new Date(selectedTheme.created_at).toLocaleString()}
-              </Text>
+            <Box>
+              <Text color="gray">   │ </Text>
+              <Text bold color="cyan">Name                    </Text>
+              <Text color="gray">│ </Text>
+              <Text bold color="cyan">ID                                   </Text>
+              <Text color="gray">│ </Text>
+              <Text bold color="cyan">Status     </Text>
+              <Text color="gray">│</Text>
             </Box>
-            <Box marginBottom={1}>
-              <Text bold>Choose an action:</Text>
+            <Box>
+              <Text color="gray">   ├─────────────────────────┼──────────────────────────────────────┼────────────┤</Text>
             </Box>
-            <SelectInput
-              items={[
-                { label: '✏️  Edit Theme Details', value: 'edit' },
-                { label: '🗑️  Delete Theme', value: 'delete' },
-                { label: '← Back to List', value: 'back' }
-              ]}
-              onSelect={(item) => handleActionSelect(item.value)}
-              indicatorComponent={({ isSelected }: any) => (
-                <Text color="cyan">{isSelected ? '▶' : ' '}</Text>
-              )}
-              itemComponent={({ label, isSelected }: any) => (
-                <Text color={isSelected ? 'cyan' : 'white'}>{label}</Text>
-              )}
-            />
+
+            {themes.map((theme, index) => {
+              const name = typeof theme.name === 'object' ? theme.name.en : theme.name;
+              const isSelected = index === selectedIndex;
+              const displayName = name.length > 23 ? name.substring(0, 20) + '...' : name.padEnd(23);
+              const displayId = theme.id.padEnd(36);
+
+              let statusColor: string = 'gray';
+              let statusText = 'No version ';
+
+              if (theme.latest_version) {
+                switch (theme.latest_version.status) {
+                  case 'published':
+                    statusText = 'Published  ';
+                    statusColor = 'green';
+                    break;
+                  case 'draft':
+                    statusText = 'Draft      ';
+                    statusColor = 'yellow';
+                    break;
+                  case 'archived':
+                    statusText = 'Archived   ';
+                    statusColor = 'gray';
+                    break;
+                  default:
+                    statusText = (theme.latest_version.status || 'Unknown').substring(0, 10).padEnd(11);
+                    statusColor = 'gray';
+                }
+              }
+
+              return (
+                <Box key={`theme-${theme.id}-${index}`}>
+                  <Text color={isSelected ? 'cyan' : 'gray'}>
+                    {isSelected ? '▶ ' : '  '}
+                  </Text>
+                  <Text color="gray">│ </Text>
+                  <Text color={isSelected ? 'cyan' : 'white'}>
+                    {displayName}
+                  </Text>
+                  <Text color="gray">│ </Text>
+                  <Text color={isSelected ? 'yellow' : 'gray'}>
+                    {displayId}
+                  </Text>
+                  <Text color="gray">│ </Text>
+                  <Text color={statusColor}>
+                    {statusText}
+                  </Text>
+                  <Text color="gray">│</Text>
+                </Box>
+              );
+            })}
+
+            <Box>
+              <Text color="gray">   └─────────────────────────┴──────────────────────────────────────┴────────────┘</Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text dimColor>[↑↓] Navigate  </Text>
+              <Text color="green">[E] Edit  </Text>
+              <Text color="red">[D] Delete  </Text>
+              <Text color="yellow">[A] Archive  </Text>
+              <Text dimColor>[Esc] Back</Text>
+            </Box>
           </Box>
         );
 
@@ -276,26 +363,31 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         );
 
       case 'delete':
-        const deleteThemeName = typeof selectedTheme.name === 'object' 
-          ? selectedTheme.name.en 
+        const deleteThemeName = typeof selectedTheme.name === 'object'
+          ? selectedTheme.name.en
           : selectedTheme.name;
-        
+
         return (
           <Box flexDirection="column">
-            <Text color="red" bold>⚠️  Delete Theme</Text>
+            <Text color="red" bold>⚠️  Delete "{deleteThemeName}"?</Text>
+            <Text dimColor>ID: {selectedTheme.id}</Text>
             <Box marginTop={1}>
-              <Text>
-                Are you sure you want to delete "{deleteThemeName}"?
-              </Text>
-              <Text dimColor>
-                Theme ID: {selectedTheme.id}
-              </Text>
+              <Text color="yellow">[Y/Enter] Delete • [N/Esc] Cancel</Text>
             </Box>
+          </Box>
+        );
+
+      case 'archive':
+        const archiveThemeName = typeof selectedTheme.name === 'object'
+          ? selectedTheme.name.en
+          : selectedTheme.name;
+
+        return (
+          <Box flexDirection="column">
+            <Text color="yellow" bold>📦 Archive "{archiveThemeName}"?</Text>
+            <Text dimColor>This will mark the theme as archived</Text>
             <Box marginTop={1}>
-              <Text color="red">This action cannot be undone!</Text>
-            </Box>
-            <Box marginTop={1}>
-              <Text dimColor>[Y] Yes, delete • [N] No, cancel • [Esc] Cancel</Text>
+              <Text color="yellow">[Y/Enter] Archive • [N/Esc] Cancel</Text>
             </Box>
           </Box>
         );
@@ -318,7 +410,11 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
               <Text>{error}</Text>
             </Box>
             <Box marginTop={1}>
-              <Text dimColor>[Esc] Back</Text>
+              {error && error.includes('installed on stores') ? (
+                <Text dimColor>[A] Archive • [Esc] Back to themes</Text>
+              ) : (
+                <Text dimColor>[Esc] Back</Text>
+              )}
             </Box>
           </Box>
         );

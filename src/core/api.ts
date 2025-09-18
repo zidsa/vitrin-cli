@@ -448,10 +448,10 @@ export class ApiService {
   async updateThemeVersionStatus(
     themeId: string,
     versionId: string,
-    status: 'published' | 'draft'
+    status: 'draft' | 'pending_review' | 'published' | 'archived'
   ): Promise<any> {
     try {
-      const response = await this.client.patch(
+      const response = await this.client.post(
         `/v2/themes/${themeId}/versions/${versionId}/status/`,
         { status }
       );

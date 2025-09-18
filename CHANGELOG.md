@@ -5,36 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.7] - 2025-09-18
+## [1.1.0] - 2025-09-18
 ### Added
-- Refresh preview functionality in TUI mode, press 'R' to re-preview theme without navigating back.
-- Visual indicator showing refresh option on preview success screen.
-- New `vitrin link` command to manage theme linking - link, unlink, or switch between different Zid themes.
-- Link/Unlink Theme option in TUI dashboard for managing theme connections.
-- Fully functional Activate Theme option in TUI that works with previously previewed installations.
-- Installation tracking system that saves installation IDs after preview for easy activation.
+- Refresh preview in TUI mode with 'R' key
+- `vitrin link` command for theme linking management
+- Link/Unlink Theme option in TUI dashboard
+- Activate Theme with installation tracking
+- Archive themes with 'A' key when deletion blocked
+- Direct keyboard shortcuts in Manage Themes (E/D/A)
 
 ### Changed
-- Theme zip files are now created in the system's temporary directory instead of the theme directory during preview/push operations.
-- Automatic cleanup of temporary zip files after upload completion or errors.
-- Activate command in TUI now shows stores with available installations and allows one-click activation.
-- Activate command now automatically installs the theme if no previous installation exists on the selected store.
-- Unified navigation hints across all TUI views (Esc/q to go back).
-- **BREAKING**: Changed `--store` option from accepting email to accepting store ID for more reliable store identification
-- Dev stores API now uses `store_id` field instead of the pivot table `id` field
-- Updated all store references throughout the codebase to use the actual store ID
-
+- `--store` option now uses store ID instead of email
+- Dev stores API uses `store_id` field instead of pivot table `id`
+- Theme zips created in temp directory
+- Activate auto-installs when needed
+- Unified navigation (Esc/q to go back)
+- Direct keyboard actions in Manage Themes
+- Smart error handling suggesting archive when delete fails
+- Error screen now shows context-aware navigation options
 
 ### Fixed
-- Deprecated `substr` method replaced with `substring` in PreviewWizard.
-- Removed unused imports in App.tsx.
-- Fixed confusion between pivot table ID and actual store ID when working with dev stores
-- Fixed CORS issues with authentication callback server to properly handle preflight requests from partner dashboard
-- Added support for POST requests to authentication callback endpoint
+- Replaced deprecated `substr` with `substring`
+- Removed unused imports
+- Fixed pivot table ID confusion
+- Fixed CORS for auth callback
+- Added POST support to auth callback
+- Fixed navigation losing selected theme when going back from error screen
 
 ### Removed
-- Removed `vitrin install` command as it's redundant with preview/activate workflow.
-- Removed `vitrin init` command - use `vitrin link` instead for existing directories.
+- `vitrin install` command (use preview/activate)
+- `vitrin init` command (use `vitrin link`)
 
 ## [1.0.6] - 2025-09-15
 ### Added
