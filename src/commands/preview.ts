@@ -175,6 +175,16 @@ const previewCommand = new Command('preview')
           versionData.theme_version.id
         );
 
+        const draftedSettings =  await buildService.getDraftedSettings(themePath);
+        if (draftedSettings) {
+          await apiService.setDraftSettings(
+            storeId,
+            installation.id,
+            draftedSettings,
+          );
+          logger.info(`Drafted settings uploaded`);
+        }
+
         logger.success('\n🎉 Theme ready for preview!');
         logger.info(`\nTheme ID: ${themeId}`);
         logger.info(`Version: ${versionData.theme_version.id}`);
