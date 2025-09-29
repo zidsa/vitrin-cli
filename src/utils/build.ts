@@ -150,6 +150,32 @@ export class BuildService {
       logger.debug(`Failed to clean up zip file: ${zipPath} - ${error}`);
     }
   }
+
+  async getDraftedSettings(themePath: string): Promise<{ path: string; settings: any }[]> {
+    const resolvedPath = resolve(themePath);
+
+    const settingsFiles: { filePath: string; path: string }[] = [
+      { filePath: join(resolvedPath, 'templates/home.json'), path: 'templates/home.jinja' },
+      { filePath: join(resolvedPath, 'layout.json'), path: 'layout.jinja' },
+      { filePath: join(resolvedPath, 'header.json'), path: 'header.jinja' },
+      { filePath: join(resolvedPath, 'footer.json'), path: 'footer.jinja' },
+    ];
+
+    const results: { path: string; settings: any }[] = [];
+
+    for (const { filePath, path } of settingsFiles) {
+      try {
+        const content = await fs.readFile(filePath, 'utf8');
+        const parsed = JSON.parse(content);
+        results.push({ path: path, settings: parsed });
+      } catch (error: any) {
+        logger.warn(`Failed to load settings from "${filePath}": ${error.message}`);
+        continue;
+      }
+    }
+
+    return results;
+  }
 }
 
 export default BuildService.getInstance();

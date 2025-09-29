@@ -255,6 +255,18 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
         versionData.theme_version.id
       );
       
+      setProgress(80);
+
+      const draftedSettings =  await buildService.getDraftedSettings(themePath);
+      if (draftedSettings) {
+        await apiService.setDraftSettings(
+          storeIdStr,
+          installationResponse.id,
+          draftedSettings,
+        );
+        setStatusMessage(`Drafted settings uploaded`);
+      }
+      
       setProgress(85);
       
       setStatusMessage('Getting preview URL...');

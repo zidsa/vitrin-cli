@@ -492,6 +492,33 @@ export class ApiService {
     }
   }
 
+  async setDraftSettings(
+    storeId: string,
+    installationId: string,
+    data: { path: string; settings: any }[]
+  ): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/v2/stores/themes/${installationId}/templates/bulk-settings/`,
+        data,
+        {
+          headers: {
+            'store-id': storeId,
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to set drafted settings: ${errorMessage}`);
+        throw new Error(`Failed to set drafted settings: ${errorMessage}`);
+      }
+      logger.error('Failed to set drafted settings', error as Error);
+      throw error;
+    }
+  }
+
   async activateTheme(storeId: string, installationId: string): Promise<any> {
     try {
       const response = await this.client.post(
