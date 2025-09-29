@@ -23,7 +23,8 @@ export class BuildService {
     options: BuildOptions = {}
   ): Promise<string> {
     const resolvedPath = resolve(buildPath);
-    const outputDir = options.output || (options.useTemp !== false ? tmpdir() : process.cwd());
+    const outputDir =
+      options.output || (options.useTemp !== false ? tmpdir() : process.cwd());
     const outputPath = join(outputDir, `${buildName}-${Date.now()}.zip`);
 
     await fs.mkdir(dirname(outputPath), { recursive: true });
@@ -151,11 +152,16 @@ export class BuildService {
     }
   }
 
-  async getDraftedSettings(themePath: string): Promise<{ path: string; settings: any }[]> {
+  async getDraftedSettings(
+    themePath: string
+  ): Promise<{ path: string; settings: any }[]> {
     const resolvedPath = resolve(themePath);
 
     const settingsFiles: { filePath: string; path: string }[] = [
-      { filePath: join(resolvedPath, 'templates/home.json'), path: 'templates/home.jinja' },
+      {
+        filePath: join(resolvedPath, 'templates/home.json'),
+        path: 'templates/home.jinja',
+      },
       { filePath: join(resolvedPath, 'layout.json'), path: 'layout.jinja' },
       { filePath: join(resolvedPath, 'header.json'), path: 'header.jinja' },
       { filePath: join(resolvedPath, 'footer.json'), path: 'footer.jinja' },
@@ -169,7 +175,9 @@ export class BuildService {
         const parsed = JSON.parse(content);
         results.push({ path: path, settings: parsed });
       } catch (error: any) {
-        logger.warn(`Failed to load settings from "${filePath}": ${error.message}`);
+        logger.warn(
+          `Failed to load settings from "${filePath}": ${error.message}`
+        );
         continue;
       }
     }

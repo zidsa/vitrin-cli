@@ -33,11 +33,11 @@ export class ApiService {
 
   private extractErrorMessage(data: any): string | null {
     if (!data) return null;
-    
+
     if (typeof data === 'string') {
       return data;
     }
-    
+
     if (data.message) {
       if (typeof data.message === 'string') {
         return data.message;
@@ -46,11 +46,11 @@ export class ApiService {
         return data.message.description;
       }
     }
-    
+
     if (data.detail) {
       return data.detail;
     }
-    
+
     if (data.error) {
       if (typeof data.error === 'string') {
         return data.error;
@@ -59,7 +59,7 @@ export class ApiService {
         return data.error.message;
       }
     }
-    
+
     if (data.errors) {
       if (Array.isArray(data.errors) && data.errors.length > 0) {
         return data.errors[0];
@@ -72,25 +72,32 @@ export class ApiService {
         return String(firstError);
       }
     }
-    
+
     if (data.non_field_errors) {
-      if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) {
+      if (
+        Array.isArray(data.non_field_errors) &&
+        data.non_field_errors.length > 0
+      ) {
         return data.non_field_errors[0];
       }
     }
-    
+
     const keys = Object.keys(data);
     for (const key of keys) {
       if (key !== 'status' && key !== 'statusCode' && data[key]) {
         if (typeof data[key] === 'string') {
           return data[key];
         }
-        if (Array.isArray(data[key]) && data[key].length > 0 && typeof data[key][0] === 'string') {
+        if (
+          Array.isArray(data[key]) &&
+          data[key].length > 0 &&
+          typeof data[key][0] === 'string'
+        ) {
           return data[key][0];
         }
       }
     }
-    
+
     return null;
   }
 
@@ -165,20 +172,24 @@ export class ApiService {
           logger.debug(
             `API returned 401. Response: ${JSON.stringify(error.response?.data)}`
           );
-          
+
           const errorDetail = this.extractErrorMessage(error.response?.data);
           await auth.clearToken();
-          
+
           logger.warn('Your session has expired or is invalid.');
-          
+
           const isInteractive = process.stdout.isTTY && !process.env.CI;
           if (isInteractive) {
-            logger.info('Would you like to authenticate now? Starting login process...');
-            
+            logger.info(
+              'Would you like to authenticate now? Starting login process...'
+            );
+
             try {
               await auth.login();
-              logger.success('Re-authentication successful! Retrying your request...');
-              
+              logger.success(
+                'Re-authentication successful! Retrying your request...'
+              );
+
               const originalRequest = error.config;
               const newToken = await auth.getToken();
               if (newToken && originalRequest) {
@@ -186,15 +197,18 @@ export class ApiService {
                 if (originalRequest.url?.includes('/v1/')) {
                   originalRequest.headers['x-partner-token'] = newToken;
                 } else {
-                  originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                  originalRequest.headers['Authorization'] =
+                    `Bearer ${newToken}`;
                 }
                 return this.client.request(originalRequest);
               }
             } catch (loginError) {
-              logger.error('Re-authentication failed. Please run "vitrin login" manually.');
+              logger.error(
+                'Re-authentication failed. Please run "vitrin login" manually.'
+              );
             }
           }
-          
+
           if (errorDetail && errorDetail.toLowerCase().includes('email')) {
             throw new Error(`Authentication failed: ${errorDetail}`);
           } else if (errorDetail) {
@@ -212,7 +226,7 @@ export class ApiService {
           logger.debug(
             `API returned 403. Response: ${JSON.stringify(error.response?.data)}`
           );
-          
+
           const errorDetail = this.extractErrorMessage(error.response?.data);
           if (errorDetail) {
             throw new Error(`Access denied: ${errorDetail}`);
@@ -228,10 +242,12 @@ export class ApiService {
           if (errorDetail) {
             throw new Error(`Server error (${status}): ${errorDetail}`);
           } else {
-            throw new Error(`Server error (${status}). Please try again later.`);
+            throw new Error(
+              `Server error (${status}). Please try again later.`
+            );
           }
         }
-        
+
         if (status >= 400) {
           const errorDetail = this.extractErrorMessage(error.response?.data);
           if (errorDetail) {

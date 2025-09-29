@@ -58,7 +58,6 @@ const previewCommand = new Command('preview')
         logger.success('✅ Theme structure is valid');
       }
 
-
       if (options.build) {
         logger.loading('Building theme...');
         await buildService.removeDSStore(resolvedPath);
@@ -175,12 +174,13 @@ const previewCommand = new Command('preview')
           versionData.theme_version.id
         );
 
-        const draftedSettings =  await buildService.getDraftedSettings(themePath);
+        const draftedSettings =
+          await buildService.getDraftedSettings(themePath);
         if (draftedSettings) {
           await apiService.setDraftSettings(
             storeId,
             installation.id,
-            draftedSettings,
+            draftedSettings
           );
           logger.info(`Drafted settings uploaded`);
         }

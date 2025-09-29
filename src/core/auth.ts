@@ -96,14 +96,16 @@ export class AuthManager {
       app.use(express.json());
       app.use(express.urlencoded({ extended: true }));
 
-      app.use(cors({
-        origin: true,
-        credentials: true,
-        methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'x-partner-token'],
-        preflightContinue: false,
-        optionsSuccessStatus: 204
-      }));
+      app.use(
+        cors({
+          origin: true,
+          credentials: true,
+          methods: ['GET', 'POST', 'OPTIONS'],
+          allowedHeaders: ['Content-Type', 'Authorization', 'x-partner-token'],
+          preflightContinue: false,
+          optionsSuccessStatus: 204,
+        })
+      );
 
       const server = app.listen(port, () => {
         logger.info(
@@ -119,7 +121,10 @@ export class AuthManager {
       app.options('/auth/callback', (_req: any, res: any) => {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-partner-token');
+        res.header(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization, x-partner-token'
+        );
         res.sendStatus(204);
       });
 
@@ -241,7 +246,7 @@ export class AuthManager {
     try {
       const axios = (await import('axios')).default;
       const baseURL = process.env.VITRIN_API_URL || 'https://api.zid.sa';
-      
+
       const response = await axios.get(`${baseURL}/v1/market/partner`, {
         headers: {
           'x-partner-token': token,
@@ -251,7 +256,7 @@ export class AuthManager {
         },
         timeout: 5000,
       });
-      
+
       return response.status >= 200 && response.status < 300;
     } catch (error: any) {
       const status = error.response?.status;
@@ -270,7 +275,7 @@ export class AuthManager {
     if (!token) {
       logger.error('No authentication token found.');
       logger.info('Starting authentication process...');
-      
+
       try {
         await this.login();
         const newToken = await this.getToken();
@@ -280,8 +285,10 @@ export class AuthManager {
       } catch (error) {
         logger.error('Authentication failed:', error as Error);
       }
-      
-      throw new Error('Authentication required. Run "vitrin login" to authenticate.');
+
+      throw new Error(
+        'Authentication required. Run "vitrin login" to authenticate.'
+      );
     }
 
     return token;

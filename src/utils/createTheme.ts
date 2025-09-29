@@ -35,11 +35,13 @@ export async function createThemeFromTemplate(
     const { spawnSync } = await import('child_process');
     const result = spawnSync('git', ['clone', templateRepo, resolvedPath], {
       stdio: 'pipe',
-      shell: process.platform === 'win32'
+      shell: process.platform === 'win32',
     });
-    
+
     if (result.error || result.status !== 0) {
-      throw result.error || new Error(result.stderr?.toString() || 'Clone failed');
+      throw (
+        result.error || new Error(result.stderr?.toString() || 'Clone failed')
+      );
     }
   } catch (cloneError) {
     throw new Error(
@@ -68,7 +70,7 @@ export async function createThemeFromTemplate(
 
   await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-  const readmeContent =`# ${themeName}
+  const readmeContent = `# ${themeName}
 
 A Zid theme created with Vitrin CLI based on the Soft Theme template.
 
@@ -147,12 +149,12 @@ For support, please contact the theme developer or visit the Vitrin CLI document
   if (!skipGit) {
     try {
       const { spawnSync: gitInitSpawn } = await import('child_process');
-      const gitInitResult = gitInitSpawn('git', ['init'], { 
-        cwd: resolvedPath, 
+      const gitInitResult = gitInitSpawn('git', ['init'], {
+        cwd: resolvedPath,
         stdio: 'pipe',
-        shell: process.platform === 'win32'
+        shell: process.platform === 'win32',
       });
-      
+
       if (gitInitResult.error || gitInitResult.status !== 0) {
         throw gitInitResult.error || new Error('Git init failed');
       }

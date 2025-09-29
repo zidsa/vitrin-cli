@@ -45,7 +45,9 @@ const linkCommand = new Command('link')
 
       if (currentConfig.id && currentConfig.id !== themeId && !options.force) {
         logger.error(`❌ Already linked to theme: ${currentConfig.id}`);
-        logger.info('Use --force to override or run without theme-id to unlink first');
+        logger.info(
+          'Use --force to override or run without theme-id to unlink first'
+        );
         process.exit(1);
       }
 
@@ -58,23 +60,29 @@ const linkCommand = new Command('link')
 
         if (!theme) {
           logger.error(`❌ Theme with ID "${themeId}" not found`);
-          logger.info('Make sure the theme ID is correct and you have access to it');
+          logger.info(
+            'Make sure the theme ID is correct and you have access to it'
+          );
           process.exit(1);
         }
 
-        const themeName = typeof theme.name === 'object' ? theme.name.en : theme.name;
+        const themeName =
+          typeof theme.name === 'object' ? theme.name.en : theme.name;
         await themeManager.updateThemeId(themeId, theme.slug);
 
         if (currentConfig.id && currentConfig.id !== themeId) {
-          logger.success(`✅ Switched from theme ${currentConfig.id} to ${themeId}`);
+          logger.success(
+            `✅ Switched from theme ${currentConfig.id} to ${themeId}`
+          );
         } else {
           logger.success(`✅ Linked to theme: ${themeId}`);
         }
 
         logger.info(`📦 Theme: ${themeName}`);
         logger.info(`🔗 Slug: ${theme.slug}`);
-        logger.info('\n💡 You can now use push/preview commands with this theme');
-
+        logger.info(
+          '\n💡 You can now use push/preview commands with this theme'
+        );
       } catch (error: any) {
         if (error.message?.includes('Authentication required')) {
           logger.warn('⚠️  Linking without verification (not authenticated)');
@@ -85,7 +93,6 @@ const linkCommand = new Command('link')
           throw error;
         }
       }
-
     } catch (error) {
       logger.error('Link operation failed:', error as Error);
       process.exit(1);
