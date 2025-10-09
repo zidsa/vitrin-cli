@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-10-10
+### Fixed
+- Fixed auth auto-logout issue on 403 errors
+
 ## [1.1.3] - 2025-10-10
 ### Fixed
 - Fixed build output on build command to use theme directory, preview commands continue to use system temp directory

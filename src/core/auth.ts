@@ -262,7 +262,6 @@ export class AuthManager {
       const status = error.response?.status;
       if (status === 401 || status === 403) {
         logger.debug('Token validation failed - token expired or invalid');
-        await this.clearToken();
         return false;
       }
       return true;

@@ -174,8 +174,20 @@ export class ApiService {
           );
 
           const errorDetail = this.extractErrorMessage(error.response?.data);
-          await auth.clearToken();
 
+          const isTokenValid = await auth.validateToken();
+
+          if (isTokenValid) {
+            if (errorDetail) {
+              throw new Error(`Unauthorized: ${errorDetail}`);
+            } else {
+              throw new Error(
+                'Unauthorized access to this resource. Please check your permissions or resource ID.'
+              );
+            }
+          }
+
+          await auth.clearToken();
           logger.warn('Your session has expired or is invalid.');
 
           const isInteractive = process.stdout.isTTY && !process.env.CI;
