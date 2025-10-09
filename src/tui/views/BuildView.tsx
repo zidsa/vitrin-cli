@@ -84,6 +84,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
         updateStep(3, 'running');
         const outputPath = await buildService.zipTheme(themeName, themePath, {
           compression: 9,
+          useTemp: false,
         });
         
         const stats = await fs.stat(outputPath);

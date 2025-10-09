@@ -107,7 +107,9 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
       await buildService.removeDSStore(themePath);
 
       const themeNameBase = themeName.replace(/\s+/g, '-').toLowerCase();
-      themeZipPath = await buildService.zipTheme(themeNameBase, themePath);
+      themeZipPath = await buildService.zipTheme(themeNameBase, themePath, {
+        useTemp: true,
+      });
 
       setStatusMessage('Creating theme version...');
 

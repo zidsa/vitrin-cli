@@ -55,7 +55,9 @@ const updateCommand = new Command('update')
       if (options.build) {
         logger.loading('Building theme...');
         await buildService.removeDSStore(resolvedPath);
-        themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+        themeZipPath = await buildService.zipTheme(themeName, resolvedPath, {
+          useTemp: true,
+        });
         logger.success('Theme built successfully');
       } else {
         const possiblePaths = [
@@ -77,7 +79,9 @@ const updateCommand = new Command('update')
         if (!found) {
           logger.warn('No built theme found. Building automatically...');
           await buildService.removeDSStore(resolvedPath);
-          themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+          themeZipPath = await buildService.zipTheme(themeName, resolvedPath, {
+            useTemp: true,
+          });
         }
       }
 

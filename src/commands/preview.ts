@@ -61,7 +61,9 @@ const previewCommand = new Command('preview')
       if (options.build) {
         logger.loading('Building theme...');
         await buildService.removeDSStore(resolvedPath);
-        themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+        themeZipPath = await buildService.zipTheme(themeName, resolvedPath, {
+          useTemp: true,
+        });
         shouldCleanup = true;
         logger.success('✅ Theme built successfully');
       } else {
@@ -86,7 +88,9 @@ const previewCommand = new Command('preview')
         if (!found) {
           logger.info('Building theme package...');
           await buildService.removeDSStore(resolvedPath);
-          themeZipPath = await buildService.zipTheme(themeName, resolvedPath);
+          themeZipPath = await buildService.zipTheme(themeName, resolvedPath, {
+            useTemp: true,
+          });
           shouldCleanup = true;
         }
       }

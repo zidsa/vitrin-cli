@@ -162,7 +162,9 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       const buildService = (await import('../../utils/build.js')).default;
 
       await buildService.removeDSStore(resolvedPath);
-      themeZipPath = await buildService.zipTheme(themeNameBase, resolvedPath);
+      themeZipPath = await buildService.zipTheme(themeNameBase, resolvedPath, {
+        useTemp: true,
+      });
       
       setProgress(20);
       
