@@ -109,10 +109,8 @@ export class ApiService {
 
           const token = await auth.getToken();
           if (token) {
-            // v1 endpoints use x-partner-token, v2 endpoints use Bearer token
-            if (config.url?.includes('/v1/')) {
-              config.headers['x-partner-token'] = token;
-            } else {
+            config.headers['x-partner-token'] = token;
+            if (config.url?.includes('/v2/')) {
               config.headers['Authorization'] = `Bearer ${token}`;
             }
             logger.debug(`Added auth token to request: ${config.url}`);
@@ -205,12 +203,9 @@ export class ApiService {
               const originalRequest = error.config;
               const newToken = await auth.getToken();
               if (newToken && originalRequest) {
-                // v1 endpoints use x-partner-token, v2 endpoints use Bearer token
-                if (originalRequest.url?.includes('/v1/')) {
-                  originalRequest.headers['x-partner-token'] = newToken;
-                } else {
-                  originalRequest.headers['Authorization'] =
-                    `Bearer ${newToken}`;
+                originalRequest.headers['x-partner-token'] = newToken;
+                if (originalRequest.url?.includes('/v2/')) {
+                  originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
                 }
                 return this.client.request(originalRequest);
               }
