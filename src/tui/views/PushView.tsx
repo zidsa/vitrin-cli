@@ -246,6 +246,22 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       if (s3Response.status >= 400) {
         throw new Error('Failed to upload to S3');
       }
+
+      addLog('Finalizing...');
+      try {
+        await api.notifyArtifactUpload(
+          theme.id,
+          versionData.id,
+          {
+            key: uploadData.upload_fields.key,
+          }
+        );
+        addLog('✅ Upload complete');
+
+      } catch (error) {
+        throw new Error('Failed to finalize:', error as Error);
+      }
+
       addLog('✅ Theme uploaded successfully');
       
       const pushRecord: any = {
