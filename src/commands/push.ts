@@ -220,6 +220,21 @@ async function pushTheme(options: PushOptions): Promise<void> {
       throw new Error(`Failed to upload to S3: ${s3Response.status}`);
     }
 
+    spinner.start('Finalizing...');
+    try {
+      await api.notifyArtifactUpload(
+        theme.id,
+        versionData.id,
+        {
+          key: uploadData.upload_fields.key,
+        }
+      );
+      spinner.succeed('✅ Upload complete');
+
+    } catch (error) {
+      throw new Error('Failed to finalize:', error as Error);
+    }
+
     spinner.succeed('Theme package uploaded successfully');
 
     await themeManager.recordPush({
