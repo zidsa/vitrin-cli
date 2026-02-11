@@ -27,7 +27,7 @@ export async function createThemeFromTemplate(
     }
   }
 
-  const templateRepo = 'https://github.com/zidsa/soft-theme-vitrin.git';
+  const templateRepo = 'https://github.com/zidsa/growth-theme.git';
 
   log('Cloning template from GitHub...');
 
