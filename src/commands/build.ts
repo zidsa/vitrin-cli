@@ -30,6 +30,17 @@ const buildCommand = new Command('build')
         logger.success('Theme structure is valid');
       }
 
+      logger.loading('Compiling theme assets...');
+      const assetResult = await buildService.runAssetBuild(
+        resolvedPath,
+        line => logger.info(`  ${line}`)
+      );
+      if (!assetResult.ran) {
+        logger.info(`Asset build skipped: ${assetResult.reason}`);
+      } else {
+        logger.success(`Assets built with ${assetResult.installer}`);
+      }
+
       logger.loading('Cleaning .DS_Store files...');
       await buildService.removeDSStore(resolvedPath);
 

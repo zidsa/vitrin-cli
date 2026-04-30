@@ -14,7 +14,6 @@ const updateCommand = new Command('update')
   .option('-v, --version <version>', 'Version number (e.g., 1.0.1)')
   .option('-c, --changelog <notes>', 'Release notes describing changes')
   .option('-l, --changelog-ar <notes>', 'Release notes in Arabic')
-  .option('-m, --minimum-api <version>', 'Minimum API version required', '1.0')
   .option('-n, --name <name>', 'Custom name for the theme build')
   .option('-b, --build', 'Build theme before updating')
   .option('--validate', 'Validate theme structure before updating')
@@ -97,7 +96,6 @@ const updateCommand = new Command('update')
 
         const versionInfo = {
           version: options.version,
-          minimum_api_version: options.minimumApi,
           changelog,
         };
 

@@ -1,13 +1,41 @@
-import { resolve, join } from 'path';
+import { resolve, join, basename } from 'path';
 import { promises as fs } from 'fs';
 import logger from './logger.js';
 import { ThemeManager } from '../core/theme.js';
+
+export const TEMPLATE_REPO_URL = 'https://github.com/zidsa/growth-theme';
+export const TEMPLATE_REPO_GIT = `${TEMPLATE_REPO_URL}.git`;
 
 export interface CreateThemeOptions {
   themeName: string;
   targetDir?: string;
   skipGit?: boolean;
   onProgress?: (message: string) => void;
+}
+
+export interface RegisterExistingOptions {
+  themeName: string;
+  existingPath: string;
+  onProgress?: (message: string) => void;
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function looksLikeThemeDirectory(path: string): Promise<boolean> {
+  const candidates = ['layout.jinja', 'theme.json', 'package.json'];
+  for (const candidate of candidates) {
+    if (await pathExists(join(path, candidate))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export async function createThemeFromTemplate(
@@ -18,25 +46,22 @@ export async function createThemeFromTemplate(
 
   const resolvedPath = resolve(process.cwd(), targetDir || themeName);
 
-  try {
-    await fs.access(resolvedPath);
+  if (await pathExists(resolvedPath)) {
     throw new Error(`Directory already exists: ${resolvedPath}`);
-  } catch (error: any) {
-    if (error.code !== 'ENOENT') {
-      throw error;
-    }
   }
 
-  const templateRepo = 'https://github.com/zidsa/growth-theme.git';
-
-  log('Cloning template from GitHub...');
+  log(`Cloning template from ${TEMPLATE_REPO_URL}...`);
 
   try {
     const { spawnSync } = await import('child_process');
-    const result = spawnSync('git', ['clone', templateRepo, resolvedPath], {
-      stdio: 'pipe',
-      shell: process.platform === 'win32',
-    });
+    const result = spawnSync(
+      'git',
+      ['clone', TEMPLATE_REPO_GIT, resolvedPath],
+      {
+        stdio: 'pipe',
+        shell: process.platform === 'win32',
+      }
+    );
 
     if (result.error || result.status !== 0) {
       throw (
@@ -53,6 +78,7 @@ export async function createThemeFromTemplate(
     const gitDir = join(resolvedPath, '.git');
     await fs.rm(gitDir, { recursive: true, force: true });
   } catch {}
+
   const packageJsonPath = join(resolvedPath, 'package.json');
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
   packageJson.name = themeName.toLowerCase().replace(/\s+/g, '-');
@@ -70,9 +96,9 @@ export async function createThemeFromTemplate(
 
   await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-  const readmeContent = `# ${themeName}
+  const vitrinNotesContent = `# ${themeName}
 
-A Zid theme created with Vitrin CLI based on the Soft Theme template.
+A Zid theme created with Vitrin CLI based on the Growth Theme template.
 
 ## Development
 
@@ -105,44 +131,14 @@ vitrin push
 - \`footer.jinja\` - Footer template
 - \`locals/\` - Localization files (ar.json, en.json)
 - \`query.json\` - Query configuration for product data
-
-## Features
-
-- RTL/LTR support based on language
-- Responsive design
-- Product filtering and search
-- Shopping cart functionality
-- User account pages
-- Wishlist support
-- Multi-language support (Arabic & English)
-
-## Customization
-
-### Theme Colors
-
-The theme uses CSS variables for easy customization. Edit the \`:root\` section in \`assets/main.css\` to change colors:
-
-\`\`\`css
-:root {
-  --primary-color: {{store.settings.branding.colors.primary}};
-  --text-color-primary-bg: {{store.settings.branding.colors.secondary}};
-}
-\`\`\`
-
-### Fonts
-
-The theme supports custom fonts through the store settings. The default font is Changa.
-
-## Support
-
-For support, please contact the theme developer or visit the Vitrin CLI documentation.
 `;
 
-  await fs.writeFile(join(resolvedPath, 'README.md'), readmeContent);
+  await fs.writeFile(join(resolvedPath, 'VITRIN.md'), vitrinNotesContent);
 
   const themeManager = new ThemeManager(resolvedPath);
   await themeManager.init({
     name: themeName,
+    path: resolvedPath,
     createdAt: new Date().toISOString(),
   });
 
@@ -187,5 +183,43 @@ npm-debug.log*
     }
   }
 
+  return resolvedPath;
+}
+
+export async function registerExistingTheme(
+  options: RegisterExistingOptions
+): Promise<string> {
+  const { themeName, existingPath, onProgress } = options;
+  const log = onProgress || ((msg: string) => logger.info(msg));
+
+  const resolvedPath = resolve(process.cwd(), existingPath);
+
+  if (!(await pathExists(resolvedPath))) {
+    throw new Error(`Directory does not exist: ${resolvedPath}`);
+  }
+
+  const stat = await fs.stat(resolvedPath);
+  if (!stat.isDirectory()) {
+    throw new Error(`Path is not a directory: ${resolvedPath}`);
+  }
+
+  if (!(await looksLikeThemeDirectory(resolvedPath))) {
+    log(
+      `⚠️  ${basename(resolvedPath)} does not contain layout.jinja, theme.json, or package.json — registering anyway.`
+    );
+  } else {
+    log(`Found theme files in ${resolvedPath}`);
+  }
+
+  const themeManager = new ThemeManager(resolvedPath);
+  const existing = await themeManager.getConfig();
+
+  await themeManager.init({
+    name: existing.name || themeName,
+    path: resolvedPath,
+    createdAt: existing.createdAt || new Date().toISOString(),
+  });
+
+  log(`Registered theme at ${resolvedPath}`);
   return resolvedPath;
 }

@@ -7,6 +7,14 @@ import { ThemeManager } from '../core/theme.js';
 import api from '../core/api.js';
 import auth from '../core/auth.js';
 import logger from '../utils/logger.js';
+import buildService from '../utils/build.js';
+import {
+  bumpSemVer,
+  formatSemVer,
+  isValidSemVer,
+  parseSemVer,
+  type BumpKind,
+} from '../utils/version.js';
 import type { Theme, ThemeVersion } from '../types/index.js';
 
 interface PushOptions {
@@ -14,6 +22,9 @@ interface PushOptions {
   activate?: boolean;
   version?: string;
   changelog?: string;
+  changelogAr?: string;
+  newVersion?: boolean;
+  bump?: string;
 }
 
 async function readThemeConfig(themePath: string): Promise<any> {
@@ -38,7 +49,6 @@ async function readThemeConfig(themePath: string): Promise<any> {
       slug:
         pkg.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') ||
         `theme-${Date.now()}`,
-      minimum_api_version: '1.0.0',
       changelog: { en: 'Theme update', ar: 'Theme update' },
     };
   }
@@ -48,7 +58,6 @@ async function readThemeConfig(themePath: string): Promise<any> {
     description: { en: 'Theme', ar: 'Theme' },
     version: '1.0.0',
     slug: `theme-${Date.now()}`,
-    minimum_api_version: '1.0.0',
     changelog: { en: 'Initial release', ar: 'Initial release' },
   };
 }
@@ -76,6 +85,31 @@ async function pushTheme(options: PushOptions): Promise<void> {
     }
 
     const themePath = process.cwd();
+
+    spinner.start('Validating theme directory...');
+    const validation =
+      await buildService.validateThemeStructureDetailed(themePath);
+    if (!validation.valid) {
+      spinner.fail(
+        `Missing ${validation.missing.join(', ')} in ${validation.resolvedPath}`
+      );
+      throw new Error(
+        `Refusing to push: ${validation.resolvedPath} is not a theme directory ` +
+          `(no layout.jinja). cd into the actual theme folder and try again.`
+      );
+    }
+    spinner.succeed('Theme directory looks valid');
+
+    spinner.start('Compiling theme assets...');
+    const assetResult = await buildService.runAssetBuild(themePath, line =>
+      console.log(`  ${line}`)
+    );
+    if (!assetResult.ran) {
+      spinner.warn(`Asset build skipped: ${assetResult.reason}`);
+    } else {
+      spinner.succeed(`Assets built with ${assetResult.installer}`);
+    }
+
     const themeManager = new ThemeManager(themePath);
     const themeConfig = await themeManager.getConfig();
 
@@ -146,31 +180,67 @@ async function pushTheme(options: PushOptions): Promise<void> {
       throw new Error('Theme not found or created');
     }
 
-    spinner.start('Creating theme version...');
-    let version = options.version || themeJson.version || '1.0.0';
-    if (!/^\d+\.\d+\.\d+/.test(version)) {
-      version = `${version}.0.0`
-        .replace(/[^\d.]/g, '')
-        .split('.')
-        .slice(0, 3)
-        .join('.');
-      if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    spinner.start('Resolving target version...');
+    let version: string;
+
+    if (options.version) {
+      if (!isValidSemVer(options.version)) {
+        throw new Error(
+          `--version must be X.Y.Z (got "${options.version}")`
+        );
+      }
+      version = options.version;
+    } else if (options.bump) {
+      if (!options.newVersion) {
+        throw new Error('--bump requires --new-version');
+      }
+      const allowed: BumpKind[] = ['patch', 'minor', 'major'];
+      if (!allowed.includes(options.bump as BumpKind)) {
+        throw new Error(
+          `--bump must be one of ${allowed.join(', ')} (got "${options.bump}")`
+        );
+      }
+      const versionsList = await api.listThemeVersions(theme.id, {
+        page_size: 1,
+      });
+      const latest = versionsList?.results?.[0]?.version;
+      const base = parseSemVer(latest) ?? { major: 1, minor: 0, patch: 0 };
+      version = formatSemVer(bumpSemVer(base, options.bump as BumpKind));
+      spinner.succeed(`Bumping ${options.bump}: ${latest ?? '(none)'} → ${version}`);
+      spinner.start('Creating theme version...');
+    } else {
+      version = themeJson.version || '1.0.0';
+      if (!isValidSemVer(version)) {
         version = '1.0.0';
       }
     }
-    const changelog = options.changelog ||
-      themeJson.changelog || {
-        en: 'Initial release',
-        ar: 'الإصدار الأولي',
-      };
+
+    const fallbackChangelog =
+      themeJson.changelog && typeof themeJson.changelog === 'object'
+        ? themeJson.changelog
+        : { en: 'Updated theme' };
+
+    const changelog: { en: string; ar?: string } = {
+      en:
+        options.changelog ||
+        (typeof themeJson.changelog === 'string'
+          ? themeJson.changelog
+          : fallbackChangelog.en) ||
+        'Updated theme',
+    };
+    if (options.changelogAr) {
+      changelog.ar = options.changelogAr;
+    } else if (
+      typeof themeJson.changelog === 'object' &&
+      themeJson.changelog?.ar
+    ) {
+      changelog.ar = themeJson.changelog.ar;
+    }
 
     const versionResponse = await api.createThemeVersion(theme.id, {
       version,
-      minimum_api_version: themeJson.minimum_api_version || '1.0.0',
-      changelog:
-        typeof changelog === 'string'
-          ? { en: changelog, ar: changelog }
-          : changelog,
+      changelog,
+      keep_using_latest: !options.newVersion,
     });
 
     const versionData = versionResponse.theme_version || versionResponse;
@@ -292,7 +362,16 @@ const pushCommand = new Command('push')
     '-v, --version <version>',
     'Version number (default: from theme.json)'
   )
-  .option('-c, --changelog <text>', 'Version changelog')
+  .option('-c, --changelog <text>', 'Version changelog (English)')
+  .option('--changelog-ar <text>', 'Version changelog (Arabic)')
+  .option(
+    '-n, --new-version',
+    'Create a new theme version instead of updating the latest one. Use when assets paths have changed and cached assets in users\' browsers would break compatibility. Omit for quick template patches and bugfixes that should ship in-place on the existing version.'
+  )
+  .option(
+    '-b, --bump <kind>',
+    'When used with --new-version, auto-bump the latest server version: patch, minor, or major (overrides --version unless --version is also given)'
+  )
   .action(async (options: PushOptions) => {
     try {
       await pushTheme(options);
@@ -301,5 +380,35 @@ const pushCommand = new Command('push')
       process.exit(1);
     }
   });
+
+pushCommand.addHelpText(
+  'after',
+  `
+When to use --new-version:
+  Pick a strategy based on whether your change can break clients that have
+  already cached assets from a previous push.
+
+  Update the latest version (default, no flag):
+    Safe for changes that don't alter asset URLs or break backward compatibility.
+    - Quick template patches (.jinja text/markup tweaks)
+    - Bugfixes in templates or translations
+    - Copy / translation updates
+    Stores already on the latest version pick up the changes immediately.
+
+  Create a new version (--new-version):
+    Required when published assets change in a way that could break users
+    whose browsers still have old assets cached against new templates.
+    - Asset files renamed, removed, or restructured (assets/ paths changed)
+    - CSS/JS bundle re-hashing or build-output changes
+    - Breaking changes to template contracts that depend on new assets
+    Existing installs stay on the older version until they explicitly update,
+    so cached-asset clients keep matching templates.
+
+Examples:
+  $ vitrin push                            # in-place patch on latest version
+  $ vitrin push --new-version              # cut a fresh version (asset changes)
+  $ vitrin push --store 123 --activate     # push and activate on a dev store
+`
+);
 
 export default pushCommand;

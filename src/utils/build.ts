@@ -1,9 +1,19 @@
-import { createWriteStream, promises as fs } from 'fs';
+import { createWriteStream, promises as fs, existsSync } from 'fs';
 import { join, basename, dirname, resolve } from 'path';
 import { tmpdir } from 'os';
+import { spawn } from 'child_process';
 import archiver from 'archiver';
 import logger from './logger.js';
 import type { BuildOptions } from '../types/index.js';
+
+export type AssetBuildProgress = (line: string) => void;
+
+export interface AssetBuildResult {
+  ran: boolean;
+  reason?: string;
+  installer?: 'pnpm' | 'yarn' | 'npm';
+  buildScript?: string;
+}
 
 export class BuildService {
   private static instance: BuildService;
@@ -75,34 +85,119 @@ export class BuildService {
     });
   }
 
+  private detectInstaller(themePath: string): 'pnpm' | 'yarn' | 'npm' {
+    if (existsSync(join(themePath, 'pnpm-lock.yaml'))) return 'pnpm';
+    if (existsSync(join(themePath, 'yarn.lock'))) return 'yarn';
+    return 'npm';
+  }
+
+  private runChildProcess(
+    cmd: string,
+    args: string[],
+    cwd: string,
+    onProgress?: AssetBuildProgress
+  ): Promise<void> {
+    return new Promise((resolveP, rejectP) => {
+      const child = spawn(cmd, args, {
+        cwd,
+        shell: process.platform === 'win32',
+        env: { ...process.env, FORCE_COLOR: '0', CI: '1' },
+      });
+
+      const onLine = (chunk: Buffer) => {
+        const text = chunk.toString();
+        for (const line of text.split(/\r?\n/)) {
+          if (line.trim() && onProgress) onProgress(line);
+        }
+      };
+
+      child.stdout?.on('data', onLine);
+      child.stderr?.on('data', onLine);
+
+      child.on('error', err => rejectP(err));
+      child.on('close', code => {
+        if (code === 0) resolveP();
+        else rejectP(new Error(`${cmd} ${args.join(' ')} exited with code ${code}`));
+      });
+    });
+  }
+
+  async runAssetBuild(
+    themePath: string,
+    onProgress?: AssetBuildProgress
+  ): Promise<AssetBuildResult> {
+    const resolvedPath = resolve(themePath || process.cwd());
+    const packageJsonPath = join(resolvedPath, 'package.json');
+
+    if (!existsSync(packageJsonPath)) {
+      return { ran: false, reason: 'no package.json' };
+    }
+
+    let pkg: any;
+    try {
+      pkg = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+    } catch (err) {
+      return { ran: false, reason: 'invalid package.json' };
+    }
+
+    const buildScript: string | undefined = pkg.scripts?.build;
+    if (!buildScript) {
+      return { ran: false, reason: 'no build script in package.json' };
+    }
+
+    const installer = this.detectInstaller(resolvedPath);
+    const nodeModulesPath = join(resolvedPath, 'node_modules');
+
+    if (!existsSync(nodeModulesPath)) {
+      onProgress?.(`Installing dependencies with ${installer}...`);
+      await this.runChildProcess(installer, ['install'], resolvedPath, onProgress);
+    } else {
+      onProgress?.('Dependencies already installed');
+    }
+
+    onProgress?.(`Running "${installer} run build"...`);
+    await this.runChildProcess(installer, ['run', 'build'], resolvedPath, onProgress);
+    onProgress?.('Asset build complete');
+
+    return { ran: true, installer, buildScript };
+  }
+
   async validateThemeStructure(themePath: string): Promise<boolean> {
-    const resolvedPath = resolve(themePath);
+    const result = await this.validateThemeStructureDetailed(themePath);
+    return result.valid;
+  }
+
+  async validateThemeStructureDetailed(
+    themePath: string
+  ): Promise<{ valid: boolean; resolvedPath: string; missing: string[] }> {
+    const resolvedPath = resolve(themePath || process.cwd());
 
     try {
       await fs.access(resolvedPath);
     } catch {
       logger.error(`Theme path does not exist: ${resolvedPath}`);
-      return false;
+      return { valid: false, resolvedPath, missing: ['<directory>'] };
     }
 
     const requiredFiles = ['layout.jinja'];
-
-    const missingFiles: string[] = [];
+    const missing: string[] = [];
 
     for (const file of requiredFiles) {
       try {
         await fs.access(join(resolvedPath, file));
       } catch {
-        missingFiles.push(file);
+        missing.push(file);
       }
     }
 
-    if (missingFiles.length > 0) {
-      logger.error(`Missing required files: ${missingFiles.join(', ')}`);
-      return false;
+    if (missing.length > 0) {
+      logger.error(
+        `Missing required files in ${resolvedPath}: ${missing.join(', ')}`
+      );
+      return { valid: false, resolvedPath, missing };
     }
 
-    return true;
+    return { valid: true, resolvedPath, missing: [] };
   }
 
   async removeDSStore(dirPath: string): Promise<void> {

@@ -122,7 +122,6 @@ export const ActivateView: React.FC<ActivateViewProps> = ({
 
       const versionInfo = {
         version: '1.0.0',
-        minimum_api_version: '1.0',
         changelog: { en: 'Auto-install for activation' },
       };
 

@@ -25,7 +25,6 @@ export interface ThemeVersion {
   id: string;
   theme: string;
   version: string;
-  minimum_api_version: string;
   changelog: { en: string; ar?: string };
   status: 'draft' | 'published';
   created_at: string;
@@ -109,7 +108,6 @@ export interface CreateThemeOptions {
 export interface CreateThemeVersionOptions {
   themeId: string;
   version: string;
-  minimumApiVersion: string;
   changelog: { en: string; ar?: string };
 }
 

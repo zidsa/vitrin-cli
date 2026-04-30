@@ -55,7 +55,6 @@ describe('ApiService', () => {
 
     const result = await apiService.createThemeVersion('theme-id', {
       version: '1.0.0',
-      minimum_api_version: '1.0',
       changelog: { en: 'Initial release' }
     });
 

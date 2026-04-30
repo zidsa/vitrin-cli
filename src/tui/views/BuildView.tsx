@@ -25,6 +25,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
 }) => {
   const [steps, setSteps] = useState<BuildStep[]>([
     { name: 'Validating theme structure', status: 'pending' },
+    { name: 'Compiling theme assets (npm/pnpm/yarn run build)', status: 'pending' },
     { name: 'Cleaning system files', status: 'pending' },
     { name: 'Counting theme files', status: 'pending' },
     { name: 'Creating theme.zip archive', status: 'pending' },
@@ -34,6 +35,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
   const [buildSize, setBuildSize] = useState<string>('');
   const [fileCount, setFileCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [assetBuildLog, setAssetBuildLog] = useState<string>('');
 
   useInput((input: string, key: any) => {
     if (key.escape || input === 'q') {
@@ -51,19 +53,34 @@ export const BuildView: React.FC<BuildViewProps> = ({
       try {
         const { resolve } = await import('path');
         const fs = (await import('fs')).promises;
-        
+
         updateStep(0, 'running');
-        const isValid = await buildService.validateThemeStructure(themePath);
-        if (!isValid) {
-          throw new Error('Invalid theme structure');
+        const validation =
+          await buildService.validateThemeStructureDetailed(themePath);
+        if (!validation.valid) {
+          const missingList = validation.missing.join(', ');
+          throw new Error(
+            `Missing ${missingList} in ${validation.resolvedPath}. ` +
+              `If your theme files live somewhere else, use 'Switch Theme' ` +
+              `to pick the correct directory.`
+          );
         }
         updateStep(0, 'completed');
 
         updateStep(1, 'running');
-        await buildService.removeDSStore(themePath);
+        const assetResult = await buildService.runAssetBuild(themePath, line =>
+          setAssetBuildLog(line.length > 80 ? line.slice(0, 80) + '…' : line)
+        );
+        if (!assetResult.ran) {
+          setAssetBuildLog(`skipped (${assetResult.reason})`);
+        }
         updateStep(1, 'completed');
 
         updateStep(2, 'running');
+        await buildService.removeDSStore(themePath);
+        updateStep(2, 'completed');
+
+        updateStep(3, 'running');
         const countFiles = async (dir: string): Promise<number> => {
           let count = 0;
           const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -76,28 +93,28 @@ export const BuildView: React.FC<BuildViewProps> = ({
           }
           return count;
         };
-        
+
         const totalFiles = await countFiles(themePath);
         setFileCount(totalFiles);
-        updateStep(2, 'completed');
+        updateStep(3, 'completed');
 
-        updateStep(3, 'running');
+        updateStep(4, 'running');
         const outputPath = await buildService.zipTheme(themeName, themePath, {
           compression: 9,
           useTemp: false,
         });
-        
+
         const stats = await fs.stat(outputPath);
         setBuildSize(`${(stats.size / 1024 / 1024).toFixed(2)} MB`);
-        updateStep(3, 'completed');
+        updateStep(4, 'completed');
 
-        updateStep(4, 'running');
+        updateStep(5, 'running');
         try {
           await fs.access(outputPath);
         } catch {
           throw new Error('Build output verification failed');
         }
-        updateStep(4, 'completed');
+        updateStep(5, 'completed');
 
         setTimeout(() => {
           onComplete();
@@ -153,15 +170,22 @@ export const BuildView: React.FC<BuildViewProps> = ({
 
         <Box flexDirection="column" marginY={1}>
           {steps.map((step, index) => (
-            <Box key={index} marginBottom={1}>
-              <Box width={3}>{getStepIcon(step.status)}</Box>
-              <Text color={step.status === 'running' ? 'cyan' : step.status === 'completed' ? 'green' : 'gray'}>
-                {step.name}
-              </Text>
-              {step.progress !== undefined && step.status === 'running' && (
-                <Box marginLeft={2}>
-                  <ProgressBar percent={step.progress / 100} />
-                  <Text color="gray"> {step.progress}%</Text>
+            <Box key={index} marginBottom={1} flexDirection="column">
+              <Box>
+                <Box width={3}>{getStepIcon(step.status)}</Box>
+                <Text color={step.status === 'running' ? 'cyan' : step.status === 'completed' ? 'green' : 'gray'}>
+                  {step.name}
+                </Text>
+                {step.progress !== undefined && step.status === 'running' && (
+                  <Box marginLeft={2}>
+                    <ProgressBar percent={step.progress / 100} />
+                    <Text color="gray"> {step.progress}%</Text>
+                  </Box>
+                )}
+              </Box>
+              {index === 1 && assetBuildLog && step.status === 'running' && (
+                <Box marginLeft={3}>
+                  <Text dimColor>{assetBuildLog}</Text>
                 </Box>
               )}
             </Box>

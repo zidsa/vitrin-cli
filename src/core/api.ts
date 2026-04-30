@@ -10,6 +10,7 @@ import type {
   DevStoresResponse,
   ApiResponse,
 } from '../types/index.js';
+import type { ThemeVersionStatus } from './themeStatus.js';
 
 export class ApiService {
   private client: AxiosInstance;
@@ -386,8 +387,8 @@ export class ApiService {
     themeId: string,
     data: {
       version: string;
-      minimum_api_version: string;
       changelog: { en: string; ar?: string };
+      keep_using_latest?: boolean;
     }
   ): Promise<any> {
     try {
@@ -468,10 +469,34 @@ export class ApiService {
     }
   }
 
+  async updateThemeVersion(
+    themeId: string,
+    versionId: string,
+    data: {
+      changelog?: { en?: string; ar?: string };
+    }
+  ): Promise<any> {
+    try {
+      const response = await this.client.patch(
+        `/v2/themes/${themeId}/versions/${versionId}/`,
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to update theme version: ${errorMessage}`);
+        throw new Error(`Failed to update theme version: ${errorMessage}`);
+      }
+      logger.error('Failed to update theme version', error as Error);
+      throw error;
+    }
+  }
+
   async updateThemeVersionStatus(
     themeId: string,
     versionId: string,
-    status: 'draft' | 'pending_review' | 'published' | 'archived'
+    status: ThemeVersionStatus
   ): Promise<any> {
     try {
       const response = await this.client.post(
@@ -479,8 +504,183 @@ export class ApiService {
         { status }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to update theme version status: ${errorMessage}`);
+        throw new Error(
+          `Failed to update theme version status: ${errorMessage}`
+        );
+      }
       logger.error('Failed to update theme version status', error as Error);
+      throw error;
+    }
+  }
+
+  async listThemeVersions(
+    themeId: string,
+    params?: { page?: number; page_size?: number }
+  ): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/v2/themes/${themeId}/versions/`,
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to list theme versions', error as Error);
+      throw error;
+    }
+  }
+
+  async getThemeVersion(themeId: string, versionId: string): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/v2/themes/${themeId}/versions/${versionId}/`
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to fetch theme version', error as Error);
+      throw error;
+    }
+  }
+
+  async downloadThemeVersionArtifact(
+    themeId: string,
+    versionId: string
+  ): Promise<{ url: string }> {
+    try {
+      const response = await this.client.get(
+        `/v2/themes/${themeId}/versions/${versionId}/download/`
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to get artifact download URL: ${errorMessage}`);
+        throw new Error(`Failed to get artifact download URL: ${errorMessage}`);
+      }
+      logger.error('Failed to get artifact download URL', error as Error);
+      throw error;
+    }
+  }
+
+  async listPresets(
+    themeId: string,
+    params?: { page?: number; page_size?: number; type?: string }
+  ): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/v2/themes/${themeId}/presets/`,
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to list theme presets', error as Error);
+      throw error;
+    }
+  }
+
+  async getPreset(themeId: string, presetId: string): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/v2/themes/${themeId}/presets/${presetId}/`
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to fetch theme preset', error as Error);
+      throw error;
+    }
+  }
+
+  async createPreset(
+    themeId: string,
+    data: {
+      type: string;
+      name: { en: string; ar?: string };
+      images?: string[];
+      presets?: Array<{ path: string; settings: Record<string, any> }>;
+    }
+  ): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/v2/themes/${themeId}/presets/`,
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to create preset: ${errorMessage}`);
+        throw new Error(`Failed to create preset: ${errorMessage}`);
+      }
+      logger.error('Failed to create preset', error as Error);
+      throw error;
+    }
+  }
+
+  async updatePreset(
+    themeId: string,
+    presetId: string,
+    data: {
+      type?: string;
+      name?: { en: string; ar?: string };
+      images?: string[];
+      presets?: Array<{ path: string; settings: Record<string, any> }>;
+    }
+  ): Promise<any> {
+    try {
+      const response = await this.client.patch(
+        `/v2/themes/${themeId}/presets/${presetId}/`,
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to update preset: ${errorMessage}`);
+        throw new Error(`Failed to update preset: ${errorMessage}`);
+      }
+      logger.error('Failed to update preset', error as Error);
+      throw error;
+    }
+  }
+
+  async deletePreset(themeId: string, presetId: string): Promise<void> {
+    try {
+      await this.client.delete(`/v2/themes/${themeId}/presets/${presetId}/`);
+    } catch (error) {
+      logger.error('Failed to delete preset', error as Error);
+      throw error;
+    }
+  }
+
+  async uploadPresetImage(
+    themeId: string,
+    filePath: string
+  ): Promise<{ url: string }> {
+    try {
+      const form = new FormData();
+      form.append('file', createReadStream(filePath), {
+        filename: basename(filePath),
+      });
+      const response = await this.client.post(
+        `/v2/themes/${themeId}/presets/images/`,
+        form,
+        {
+          headers: form.getHeaders(),
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to upload preset image: ${errorMessage}`);
+        throw new Error(`Failed to upload preset image: ${errorMessage}`);
+      }
+      logger.error('Failed to upload preset image', error as Error);
       throw error;
     }
   }

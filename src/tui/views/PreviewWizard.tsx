@@ -216,7 +216,6 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       setStatusMessage('Creating theme version...');
       const versionInfo = {
         version: '1.0.0',
-        minimum_api_version: '1.0',
         changelog: { en: 'Preview version' },
       };
       

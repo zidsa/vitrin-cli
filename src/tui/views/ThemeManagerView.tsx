@@ -7,20 +7,53 @@ import auth from '../../core/auth.js';
 
 interface ThemeManagerViewProps {
   onBack: () => void;
+  onOpenVersions?: (theme: any) => void;
 }
 
-type ViewMode = 'list' | 'edit' | 'delete' | 'archive' | 'loading' | 'error' | 'success';
+type ViewMode =
+  | 'list'
+  | 'edit'
+  | 'delete'
+  | 'archive'
+  | 'loading'
+  | 'error'
+  | 'success';
 
-export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) => {
+type EditField = 'name_en' | 'name_ar' | 'desc_en' | 'desc_ar';
+
+const EDIT_FIELDS: EditField[] = ['name_en', 'name_ar', 'desc_en', 'desc_ar'];
+
+const FIELD_LABEL: Record<EditField, string> = {
+  name_en: 'Name (English)',
+  name_ar: 'Name (Arabic)',
+  desc_en: 'Description (English)',
+  desc_ar: 'Description (Arabic)',
+};
+
+const FIELD_PLACEHOLDER: Record<EditField, string> = {
+  name_en: 'Theme name',
+  name_ar: 'اسم القالب (اختياري)',
+  desc_en: 'Theme description',
+  desc_ar: 'وصف القالب (اختياري)',
+};
+
+export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({
+  onBack,
+  onOpenVersions,
+}) => {
   const [mode, setMode] = useState<ViewMode>('loading');
   const [themes, setThemes] = useState<any[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<any>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editField, setEditField] = useState<'name' | 'description'>('name');
+  const [editValues, setEditValues] = useState<Record<EditField, string>>({
+    name_en: '',
+    name_ar: '',
+    desc_en: '',
+    desc_ar: '',
+  });
+  const [editField, setEditField] = useState<EditField>('name_en');
 
   useEffect(() => {
     loadThemes();
@@ -83,19 +116,29 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         handleQuickDelete(themes[selectedIndex]);
       } else if (input === 'a' || input === 'A') {
         handleQuickArchive(themes[selectedIndex]);
+      } else if ((input === 'v' || input === 'V') && onOpenVersions) {
+        onOpenVersions(themes[selectedIndex]);
       } else if (key.upArrow) {
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : themes.length - 1));
+        setSelectedIndex(prev => (prev > 0 ? prev - 1 : themes.length - 1));
       } else if (key.downArrow) {
-        setSelectedIndex((prev) => (prev < themes.length - 1 ? prev + 1 : 0));
+        setSelectedIndex(prev => (prev < themes.length - 1 ? prev + 1 : 0));
       }
     }
 
     if (mode === 'edit' && key.return) {
-      if (editField === 'name' && editName.trim()) {
-        setEditField('description');
-      } else if (editField === 'description') {
-        handleEditSave();
+      const idx = EDIT_FIELDS.indexOf(editField);
+      if (idx === EDIT_FIELDS.length - 1) {
+        void handleEditSave();
+      } else {
+        setEditField(EDIT_FIELDS[idx + 1]!);
       }
+    }
+
+    if (mode === 'edit' && key.tab) {
+      // allow Tab as forward navigation as well
+      const idx = EDIT_FIELDS.indexOf(editField);
+      const nextIdx = (idx + 1) % EDIT_FIELDS.length;
+      setEditField(EDIT_FIELDS[nextIdx]!);
     }
 
     if (mode === 'delete' || mode === 'archive') {
@@ -117,16 +160,22 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
 
   const handleQuickEdit = (theme: any) => {
     setSelectedTheme(theme);
-    const name = typeof theme.name === 'object'
-      ? (theme.name.en || '')
-      : theme.name;
-    const desc = typeof theme.description === 'object'
-      ? (theme.description.en || '')
-      : (theme.description || '');
+    const nameObj =
+      typeof theme.name === 'object' && theme.name !== null
+        ? theme.name
+        : { en: theme.name || '', ar: '' };
+    const descObj =
+      typeof theme.description === 'object' && theme.description !== null
+        ? theme.description
+        : { en: theme.description || '', ar: '' };
 
-    setEditName(name);
-    setEditDescription(desc);
-    setEditField('name');
+    setEditValues({
+      name_en: nameObj.en || '',
+      name_ar: nameObj.ar || '',
+      desc_en: descObj.en || '',
+      desc_ar: descObj.ar || '',
+    });
+    setEditField('name_en');
     setMode('edit');
   };
 
@@ -141,15 +190,29 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
   };
 
   const handleEditSave = async () => {
-    setMessage('Updating theme...');
-    
-    try {
-      await apiService.updateTheme(selectedTheme.id, {
-        name: { en: editName },
-        description: { en: editDescription }
-      });
+    if (!editValues.name_en.trim()) {
+      setError('English name is required');
+      setMode('error');
+      return;
+    }
 
-      setMessage(`✅ Theme "${editName}" updated successfully!`);
+    setMessage('Updating theme...');
+
+    try {
+      const payload: any = {
+        name: { en: editValues.name_en.trim() },
+        description: { en: editValues.desc_en.trim() },
+      };
+      if (editValues.name_ar.trim()) {
+        payload.name.ar = editValues.name_ar.trim();
+      }
+      if (editValues.desc_ar.trim()) {
+        payload.description.ar = editValues.desc_ar.trim();
+      }
+
+      await apiService.updateTheme(selectedTheme.id, payload);
+
+      setMessage(`✅ Theme "${editValues.name_en}" updated successfully!`);
       setMode('success');
     } catch (err: any) {
       setError(err.message || 'Failed to update theme');
@@ -163,16 +226,22 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
     try {
       await apiService.deleteTheme(selectedTheme.id);
 
-      const name = typeof selectedTheme.name === 'object'
-        ? selectedTheme.name.en
-        : selectedTheme.name;
+      const name =
+        typeof selectedTheme.name === 'object'
+          ? selectedTheme.name.en
+          : selectedTheme.name;
 
       setMessage(`✅ Theme "${name}" deleted successfully!`);
       setMode('success');
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to delete theme';
-      if (errorMsg.includes('installed in stores') || errorMsg.includes('Cannot delete')) {
-        setError('This theme is installed on stores. Use [A] to archive it instead.');
+      if (
+        errorMsg.includes('installed in stores') ||
+        errorMsg.includes('Cannot delete')
+      ) {
+        setError(
+          'This theme is installed on stores. Use [A] to archive it instead.'
+        );
       } else {
         setError(errorMsg);
       }
@@ -202,9 +271,10 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         }
       }
 
-      const name = typeof selectedTheme.name === 'object'
-        ? selectedTheme.name.en
-        : selectedTheme.name;
+      const name =
+        typeof selectedTheme.name === 'object'
+          ? selectedTheme.name.en
+          : selectedTheme.name;
 
       setMessage(`✅ Theme "${name}" archived successfully!`);
       setMode('success');
@@ -304,6 +374,7 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
             <Box marginTop={1}>
               <Text dimColor>[↑↓] Navigate  </Text>
               <Text color="green">[E] Edit  </Text>
+              {onOpenVersions && <Text color="cyan">[V] Versions  </Text>}
               <Text color="red">[D] Delete  </Text>
               <Text color="yellow">[A] Archive  </Text>
               <Text dimColor>[Esc] Back</Text>
@@ -316,56 +387,49 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
           <Box flexDirection="column">
             <Box marginBottom={1}>
               <Text bold>Edit Theme Details</Text>
-            </Box>
-            
-            <Box marginBottom={1}>
-              <Text color={editField === 'name' ? 'cyan' : 'white'}>
-                Name: 
-              </Text>
-              {editField === 'name' ? (
-                <Box marginLeft={1}>
-                  <TextInput
-                    value={editName}
-                    onChange={setEditName}
-                    placeholder="Theme name"
-                  />
-                </Box>
-              ) : (
-                <Text> {editName}</Text>
-              )}
+              <Text dimColor>  (Arabic fields optional)</Text>
             </Box>
 
-            <Box marginBottom={1}>
-              <Text color={editField === 'description' ? 'cyan' : 'white'}>
-                Description: 
-              </Text>
-              {editField === 'description' ? (
-                <Box marginLeft={1}>
-                  <TextInput
-                    value={editDescription}
-                    onChange={setEditDescription}
-                    placeholder="Theme description"
-                  />
+            {EDIT_FIELDS.map(field => {
+              const isActive = editField === field;
+              const value = editValues[field];
+              return (
+                <Box key={field} marginBottom={1}>
+                  <Box width={26}>
+                    <Text color={isActive ? 'cyan' : 'white'}>
+                      {FIELD_LABEL[field]}:
+                    </Text>
+                  </Box>
+                  {isActive ? (
+                    <TextInput
+                      value={value}
+                      onChange={next =>
+                        setEditValues(prev => ({ ...prev, [field]: next }))
+                      }
+                      placeholder={FIELD_PLACEHOLDER[field]}
+                    />
+                  ) : (
+                    <Text dimColor>{value || '(none)'}</Text>
+                  )}
                 </Box>
-              ) : (
-                <Text> {editDescription || '(none)'}</Text>
-              )}
-            </Box>
+              );
+            })}
 
             <Box marginTop={1}>
               <Text dimColor>
-                {editField === 'name' 
-                  ? '[Enter] Next field • [Esc] Cancel'
-                  : '[Enter] Save • [Esc] Cancel'}
+                {EDIT_FIELDS.indexOf(editField) === EDIT_FIELDS.length - 1
+                  ? '[Enter] Save • [Tab] Cycle field • [Esc] Cancel'
+                  : '[Enter] Next field • [Tab] Cycle field • [Esc] Cancel'}
               </Text>
             </Box>
           </Box>
         );
 
       case 'delete':
-        const deleteThemeName = typeof selectedTheme.name === 'object'
-          ? selectedTheme.name.en
-          : selectedTheme.name;
+        const deleteThemeName =
+          typeof selectedTheme.name === 'object'
+            ? selectedTheme.name.en
+            : selectedTheme.name;
 
         return (
           <Box flexDirection="column">
@@ -378,9 +442,10 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({ onBack }) =>
         );
 
       case 'archive':
-        const archiveThemeName = typeof selectedTheme.name === 'object'
-          ? selectedTheme.name.en
-          : selectedTheme.name;
+        const archiveThemeName =
+          typeof selectedTheme.name === 'object'
+            ? selectedTheme.name.en
+            : selectedTheme.name;
 
         return (
           <Box flexDirection="column">

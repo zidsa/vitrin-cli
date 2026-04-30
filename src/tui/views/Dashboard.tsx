@@ -6,6 +6,7 @@ import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 import { View } from '../App.js';
 import { ThemeManager } from '../../core/theme.js';
+import auth from '../../core/auth.js';
 import { getVersion } from '../../utils/getVersion.js';
 
 interface DashboardProps {
@@ -17,10 +18,11 @@ interface DashboardProps {
 
 interface MenuItem {
   label: string;
-  value: View | 'activate' | 'link' | 'exit';
+  value: View | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'exit';
   key: string;
   requiresAuth?: boolean;
   requiresTheme?: boolean;
+  requiresLinked?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -32,6 +34,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [lastBuildTime, setLastBuildTime] = useState<string>('Never');
   const [lastBuildSize, setLastBuildSize] = useState<string>('N/A');
   const [themeConfig, setThemeConfig] = useState<any>(null);
+  const [authState, setAuthState] = useState<boolean>(isAuthenticated);
+  const [knownThemeCount, setKnownThemeCount] = useState<number>(0);
 
   const checkBuildStatus = () => {
     if (currentTheme && currentThemePath) {
@@ -64,14 +68,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   useEffect(() => {
+    setThemeConfig(null);
     checkBuildStatus();
-    const themeManager = new ThemeManager(currentThemePath || '.');
-    themeManager.getConfig().then(config => {
-      setThemeConfig(config);
-    });
-    const interval = setInterval(checkBuildStatus, 2000);
+
+    const refreshThemeConfig = () => {
+      const themeManager = new ThemeManager(currentThemePath || '.');
+      themeManager.getConfig().then(config => {
+        setThemeConfig(config);
+      });
+    };
+
+    refreshThemeConfig();
+
+    const refreshAuth = () => {
+      auth.isAuthenticated().then(setAuthState).catch(() => setAuthState(false));
+    };
+    refreshAuth();
+
+    const refreshKnownThemes = () => {
+      ThemeManager.listGlobalThemes()
+        .then(list => setKnownThemeCount(list.length))
+        .catch(() => setKnownThemeCount(0));
+    };
+    refreshKnownThemes();
+
+    const interval = setInterval(() => {
+      checkBuildStatus();
+      refreshThemeConfig();
+      refreshAuth();
+      refreshKnownThemes();
+    }, 2000);
     return () => clearInterval(interval);
   }, [currentTheme, currentThemePath]);
+
+  const isLinked = !!themeConfig?.id;
+  const linkedThemeName =
+    typeof themeConfig?.name === 'object'
+      ? themeConfig.name.en
+      : themeConfig?.name || currentTheme;
 
   const menuItems: MenuItem[] = [
     { label: '✨ Create New Theme', value: 'new', key: '1' },
@@ -80,26 +114,53 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '👁️  Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
     { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true },
     { label: '🔗 Link/Unlink Theme', value: 'link', key: '6' },
-    { label: '📋 Manage Themes', value: 'themes', key: '7', requiresAuth: true },
-    { label: '⚙️  Settings', value: 'settings', key: '8' },
+    {
+      label: knownThemeCount > 0
+        ? `🔀 Switch Theme (${knownThemeCount} registered)`
+        : '🔀 Switch Theme',
+      value: 'switch' as View,
+      key: 's',
+    },
+    {
+      label: '📚 Versions & Changelogs',
+      value: 'versions' as View,
+      key: 'v',
+      requiresAuth: true,
+      requiresTheme: true,
+      requiresLinked: true,
+    },
+    { label: '🌐 Generate Translations', value: 'translations', key: '7', requiresTheme: true },
+    { label: '📋 Manage Themes', value: 'themes', key: '8', requiresAuth: true, requiresTheme: true },
+    {
+      label: authState ? '👤 Account / Logout' : '🔐 Login to Zid',
+      value: 'auth',
+      key: '0',
+    },
+    { label: '⚙️  Settings', value: 'settings', key: '9' },
     { label: '🚪 Exit', value: 'exit', key: 'q' },
   ];
 
   const availableItems = menuItems.filter(item => {
     if (item.requiresTheme && !currentTheme) return false;
+    if (item.requiresAuth && !authState) return false;
+    if (item.requiresLinked && !isLinked) return false;
     return true;
   });
 
   useInput((input: string) => {
-    const item = menuItems.find(item => item.key === input);
+    const item = availableItems.find(item => item.key === input);
     if (item) {
       handleSelect(item);
     }
   });
 
-  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'exit' }) => {
+  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'exit' }) => {
     if (item.value === 'exit') {
       process.exit(0);
+    } else if (item.value === 'versions' && themeConfig?.id) {
+      onNavigate('versions' as View, {
+        versionsTheme: { id: themeConfig.id, name: linkedThemeName || themeConfig.id },
+      });
     } else {
       onNavigate(item.value as View);
     }
@@ -118,6 +179,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Text>
               <Text color="cyan">📁 Theme:</Text> {currentTheme}
             </Text>
+            {currentThemePath && (
+              <Text dimColor>   Path: {currentThemePath}</Text>
+            )}
             {themeConfig?.id ? (
               <>
                 <Text>
@@ -129,7 +193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </>
             ) : (
               <Text color="yellow">
-                ⚠️  Not pushed to Zid yet. Use 'Push to Zid' to upload.
+                ⚠️  Not pushed to Zid yet (path is tracked locally). Use 'Push to Zid' to upload.
               </Text>
             )}
             {themeConfig?.defaultStore && (
@@ -147,14 +211,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
           </>
         ) : (
-          <Text color="yellow">
-            ⚠️  No theme found. Use 'Create New Theme' to get started.
-          </Text>
+          <>
+            <Text color="yellow">
+              ⚠️  No theme found in current directory.
+            </Text>
+            {knownThemeCount > 0 ? (
+              <Text dimColor>
+                {knownThemeCount} registered theme{knownThemeCount === 1 ? '' : 's'} in ~/.vitrin/themes.json — use 'Switch Theme' to open one.
+              </Text>
+            ) : (
+              <Text dimColor>Use 'Create New Theme' to get started.</Text>
+            )}
+          </>
         )}
         
         <Text>
           <Text color="cyan">🔐 Status:</Text>{' '}
-          {isAuthenticated ? (
+          {authState ? (
             <Text color="green">Authenticated ✓</Text>
           ) : (
             <Text color="red">Not authenticated (Login required)</Text>
