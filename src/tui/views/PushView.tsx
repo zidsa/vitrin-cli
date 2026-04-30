@@ -7,6 +7,10 @@ import { ThemeManager } from '../../core/theme.js';
 import api from '../../core/api.js';
 import auth from '../../core/auth.js';
 import buildService from '../../utils/build.js';
+import {
+  findDiscouragedTemplates,
+  removeDiscouragedTemplates,
+} from '../../utils/themeValidation.js';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
 import FormData from 'form-data';
@@ -32,6 +36,7 @@ interface DevStore {
 
 type WizardStep =
   | 'select-store'
+  | 'discouraged-templates'
   | 'strategy'
   | 'confirm-new'
   | 'bump'
@@ -58,6 +63,9 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
   const [error, setError] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [stepError, setStepError] = useState<string>('');
+  const [discouragedTemplates, setDiscouragedTemplates] = useState<string[]>(
+    []
+  );
 
   useEffect(() => {
     void checkAuth();
@@ -118,8 +126,14 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       if (state === 'wizard') {
         if (step === 'select-store') {
           onBack();
-        } else if (step === 'strategy') {
+        } else if (step === 'discouraged-templates') {
           setStep('select-store');
+        } else if (step === 'strategy') {
+          setStep(
+            discouragedTemplates.length > 0
+              ? 'discouraged-templates'
+              : 'select-store'
+          );
         } else if (step === 'confirm-new') {
           setStep('strategy');
         } else if (step === 'bump') {
@@ -181,12 +195,29 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
     }
   });
 
-  const handleStoreSelect = (item: { value: string }) => {
+  const handleStoreSelect = async (item: { value: string }) => {
     if (item.value === 'back') {
       onBack();
       return;
     }
     setSelectedStore(item.value);
+
+    const found = await findDiscouragedTemplates(process.cwd());
+    setDiscouragedTemplates(found);
+    setStep(found.length > 0 ? 'discouraged-templates' : 'strategy');
+  };
+
+  const handleDiscouragedSelect = async (item: {
+    value: 'upload' | 'remove' | 'cancel';
+  }) => {
+    if (item.value === 'cancel') {
+      onBack();
+      return;
+    }
+    if (item.value === 'remove') {
+      await removeDiscouragedTemplates(process.cwd(), discouragedTemplates);
+      setDiscouragedTemplates([]);
+    }
     setStep('strategy');
   };
 
@@ -515,7 +546,50 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       <Box flexDirection="column" padding={1}>
         <Text color="cyan" bold>Step 1 — Deployment target:</Text>
         <Box marginTop={1}>
-          <SelectInput items={items} onSelect={handleStoreSelect} />
+          <SelectInput
+            items={items}
+            onSelect={item => void handleStoreSelect(item)}
+          />
+        </Box>
+      </Box>
+    );
+  }
+
+  if (step === 'discouraged-templates') {
+    const items = [
+      { label: 'Upload them anyway', value: 'upload' as const },
+      {
+        label: 'Remove them and use platform defaults',
+        value: 'remove' as const,
+      },
+      { label: 'Cancel push', value: 'cancel' as const },
+    ];
+
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Text color="yellow" bold>
+          ⚠️  Discouraged templates detected
+        </Text>
+        <Box flexDirection="column" marginTop={1} marginBottom={1}>
+          <Text dimColor>
+            Zid manages these templates with platform defaults. Uploading them
+            overrides the defaults — only do this if you intend to customize
+            them.
+          </Text>
+          <Box flexDirection="column" marginTop={1}>
+            {discouragedTemplates.map(template => (
+              <Text key={template} color="yellow">
+                • {template}
+              </Text>
+            ))}
+          </Box>
+        </Box>
+        <SelectInput
+          items={items}
+          onSelect={item => void handleDiscouragedSelect(item)}
+        />
+        <Box marginTop={1}>
+          <Text dimColor>Esc to go back</Text>
         </Box>
       </Box>
     );

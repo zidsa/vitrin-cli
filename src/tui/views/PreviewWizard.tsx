@@ -6,6 +6,11 @@ import Spinner from 'ink-spinner';
 import { ProgressBar } from '../components/ProgressBar.js';
 import apiService from '../../core/api.js';
 import { ThemeManager } from '../../core/theme.js';
+import {
+  appendValidatePath,
+  findDiscouragedTemplates,
+  removeDiscouragedTemplates,
+} from '../../utils/themeValidation.js';
 import open from 'open';
 
 interface PreviewWizardProps {
@@ -16,7 +21,7 @@ interface PreviewWizardProps {
   onBack: () => void;
 }
 
-type WizardStep = 'select-store' | 'select-theme' | 'building' | 'uploading' | 'installing' | 'complete' | 'error';
+type WizardStep = 'select-store' | 'select-theme' | 'discouraged-templates' | 'building' | 'uploading' | 'installing' | 'complete' | 'error';
 
 interface DevStore {
   id: string | number;
@@ -41,9 +46,19 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [validateUrl, setValidateUrl] = useState('');
   const [existingThemes, setExistingThemes] = useState<any[]>([]);
   const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
   const [showThemeSelection, setShowThemeSelection] = useState(false);
+  const [discouragedTemplates, setDiscouragedTemplates] = useState<string[]>(
+    []
+  );
+  const [pendingThemeContext, setPendingThemeContext] = useState<{
+    store: DevStore;
+    themeId: string | null;
+    themeNameBase: string;
+    resolvedPath: string;
+  } | null>(null);
 
   useEffect(() => {
     if (preselectedStore) {
@@ -121,8 +136,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       
       if (themeConfig?.id) {
         setSelectedThemeId(themeConfig.id);
-        setStep('building');
-        await proceedWithTheme(store, themeConfig.id, themeNameBase, resolvedPath);
+        await startProceed(store, themeConfig.id, themeNameBase, resolvedPath);
       } else {
         setExistingThemes([
           { id: 'new', name: '🆕 Create New Theme', isNew: true },
@@ -146,6 +160,43 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       setError(errorMessage);
       setStep('error');
     }
+  };
+
+  const startProceed = async (
+    store: DevStore,
+    themeId: string | null,
+    themeNameBase: string,
+    resolvedPath: string
+  ) => {
+    const found = await findDiscouragedTemplates(resolvedPath);
+    if (found.length > 0) {
+      setDiscouragedTemplates(found);
+      setPendingThemeContext({ store, themeId, themeNameBase, resolvedPath });
+      setStep('discouraged-templates');
+      return;
+    }
+    setStep('building');
+    await proceedWithTheme(store, themeId, themeNameBase, resolvedPath);
+  };
+
+  const handleDiscouragedSelect = async (item: {
+    value: 'upload' | 'remove' | 'cancel';
+  }) => {
+    const ctx = pendingThemeContext;
+    if (!ctx) return;
+
+    if (item.value === 'cancel') {
+      setPendingThemeContext(null);
+      onBack();
+      return;
+    }
+    if (item.value === 'remove') {
+      await removeDiscouragedTemplates(ctx.resolvedPath, discouragedTemplates);
+      setDiscouragedTemplates([]);
+    }
+    setPendingThemeContext(null);
+    setStep('building');
+    await proceedWithTheme(ctx.store, ctx.themeId, ctx.themeNameBase, ctx.resolvedPath);
   };
 
   const proceedWithTheme = async (
@@ -278,6 +329,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       );
       const fullUrl = previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`;
       setPreviewUrl(fullUrl);
+      setValidateUrl(appendValidatePath(fullUrl));
 
       const themeManager = new ThemeManager(themePath);
       const config = await themeManager.getConfig();
@@ -333,16 +385,14 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
     const themeNameBase = themeName || basename(resolvedPath);
 
     if (theme.isNew) {
-      setStep('building');
-      await proceedWithTheme(selectedStore!, null, themeNameBase, resolvedPath);
+      await startProceed(selectedStore!, null, themeNameBase, resolvedPath);
     } else if (theme.isLink) {
       try {
         setLoading(true);
         const themes = await apiService.getThemes({ page_size: 100 });
-        
+
         if (!themes.results || themes.results.length === 0) {
-          setStep('building');
-          await proceedWithTheme(selectedStore!, null, themeNameBase, resolvedPath);
+          await startProceed(selectedStore!, null, themeNameBase, resolvedPath);
         } else {
           setExistingThemes([
             { id: 'new', name: '🆕 Create New Theme', isNew: true },
@@ -360,12 +410,11 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       }
     } else if (theme.isExisting) {
       setSelectedThemeId(theme.id);
-      setStep('building');
-      
+
       const themeManager = new ThemeManager(resolvedPath);
       await themeManager.updateThemeId(theme.id);
-      
-      await proceedWithTheme(selectedStore!, theme.id, themeNameBase, resolvedPath);
+
+      await startProceed(selectedStore!, theme.id, themeNameBase, resolvedPath);
     }
   };
 
@@ -510,11 +559,61 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
                 <Text color="cyan" underline>{previewUrl}</Text>
               </Link>
             </Box>
+            {validateUrl && (
+              <>
+                <Box marginTop={1}>
+                  <Text>Theme validation report:</Text>
+                </Box>
+                <Box>
+                  <Link url={validateUrl}>
+                    <Text color="magenta" underline>{validateUrl}</Text>
+                  </Link>
+                </Box>
+              </>
+            )}
             <Box marginTop={1}>
               <Text dimColor italic>Opening in browser...</Text>
             </Box>
             <Box marginTop={2}>
               <Text color="yellow">[R] Refresh Preview • [Enter/Space/Esc] Continue</Text>
+            </Box>
+          </Box>
+        );
+
+      case 'discouraged-templates':
+        return (
+          <Box flexDirection="column">
+            <Box marginBottom={1}>
+              <Text color="yellow" bold>⚠️  Discouraged templates detected</Text>
+            </Box>
+            <Box marginBottom={1}>
+              <Text dimColor>
+                Zid manages these templates with platform defaults. Uploading
+                them overrides the defaults — only do this if you intend to
+                customize them.
+              </Text>
+            </Box>
+            <Box flexDirection="column" marginBottom={1}>
+              {discouragedTemplates.map(template => (
+                <Text key={template} color="yellow">• {template}</Text>
+              ))}
+            </Box>
+            <SelectInput
+              items={[
+                { label: 'Upload them anyway', value: 'upload' as const },
+                { label: 'Remove them and use platform defaults', value: 'remove' as const },
+                { label: 'Cancel preview', value: 'cancel' as const },
+              ]}
+              onSelect={(item: any) => void handleDiscouragedSelect(item)}
+              indicatorComponent={({ isSelected }: any) => (
+                <Text>{isSelected ? '● ' : '○ '}</Text>
+              )}
+              itemComponent={({ label, isSelected }: any) => (
+                <Text color={isSelected ? 'cyan' : 'white'}>{label}</Text>
+              )}
+            />
+            <Box marginTop={1}>
+              <Text dimColor>[Esc] Cancel</Text>
             </Box>
           </Box>
         );

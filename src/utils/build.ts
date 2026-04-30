@@ -4,6 +4,11 @@ import { tmpdir } from 'os';
 import { spawn } from 'child_process';
 import archiver from 'archiver';
 import logger from './logger.js';
+import {
+  validateThemeStructure as validateThemeStructureFn,
+  validateThemeStructureDetailed as validateThemeStructureDetailedFn,
+  type ThemeStructureValidation,
+} from './themeValidation.js';
 import type { BuildOptions } from '../types/index.js';
 
 export type AssetBuildProgress = (line: string) => void;
@@ -163,41 +168,13 @@ export class BuildService {
   }
 
   async validateThemeStructure(themePath: string): Promise<boolean> {
-    const result = await this.validateThemeStructureDetailed(themePath);
-    return result.valid;
+    return validateThemeStructureFn(themePath);
   }
 
   async validateThemeStructureDetailed(
     themePath: string
-  ): Promise<{ valid: boolean; resolvedPath: string; missing: string[] }> {
-    const resolvedPath = resolve(themePath || process.cwd());
-
-    try {
-      await fs.access(resolvedPath);
-    } catch {
-      logger.error(`Theme path does not exist: ${resolvedPath}`);
-      return { valid: false, resolvedPath, missing: ['<directory>'] };
-    }
-
-    const requiredFiles = ['layout.jinja'];
-    const missing: string[] = [];
-
-    for (const file of requiredFiles) {
-      try {
-        await fs.access(join(resolvedPath, file));
-      } catch {
-        missing.push(file);
-      }
-    }
-
-    if (missing.length > 0) {
-      logger.error(
-        `Missing required files in ${resolvedPath}: ${missing.join(', ')}`
-      );
-      return { valid: false, resolvedPath, missing };
-    }
-
-    return { valid: true, resolvedPath, missing: [] };
+  ): Promise<ThemeStructureValidation> {
+    return validateThemeStructureDetailedFn(themePath);
   }
 
   async removeDSStore(dirPath: string): Promise<void> {

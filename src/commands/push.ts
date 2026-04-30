@@ -3,11 +3,16 @@ import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import FormData from 'form-data';
+import inquirer from 'inquirer';
 import { ThemeManager } from '../core/theme.js';
 import api from '../core/api.js';
 import auth from '../core/auth.js';
 import logger from '../utils/logger.js';
 import buildService from '../utils/build.js';
+import {
+  findDiscouragedTemplates,
+  removeDiscouragedTemplates,
+} from '../utils/themeValidation.js';
 import {
   bumpSemVer,
   formatSemVer,
@@ -94,11 +99,49 @@ async function pushTheme(options: PushOptions): Promise<void> {
         `Missing ${validation.missing.join(', ')} in ${validation.resolvedPath}`
       );
       throw new Error(
-        `Refusing to push: ${validation.resolvedPath} is not a theme directory ` +
-          `(no layout.jinja). cd into the actual theme folder and try again.`
+        `Refusing to push: ${validation.resolvedPath} is missing required ` +
+          `theme files (${validation.missing.join(', ')}). cd into the ` +
+          `actual theme folder and try again.`
       );
     }
     spinner.succeed('Theme directory looks valid');
+
+    const discouraged = await findDiscouragedTemplates(themePath);
+    if (discouraged.length > 0) {
+      spinner.warn(
+        'Discouraged templates found — Zid manages these with platform defaults:'
+      );
+      for (const template of discouraged) {
+        console.log(`   • ${template}`);
+      }
+
+      const { action } = await inquirer.prompt<{
+        action: 'upload' | 'remove' | 'cancel';
+      }>([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'How do you want to proceed?',
+          choices: [
+            { name: 'Upload them anyway', value: 'upload' },
+            {
+              name: 'Remove them locally and use platform defaults',
+              value: 'remove',
+            },
+            { name: 'Cancel push', value: 'cancel' },
+          ],
+        },
+      ]);
+
+      if (action === 'cancel') {
+        logger.info('Push cancelled.');
+        return;
+      }
+      if (action === 'remove') {
+        await removeDiscouragedTemplates(themePath, discouraged);
+        spinner.succeed('Removed discouraged templates');
+      }
+    }
 
     spinner.start('Compiling theme assets...');
     const assetResult = await buildService.runAssetBuild(themePath, line =>

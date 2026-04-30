@@ -2,10 +2,16 @@ import { Command } from 'commander';
 import { resolve, basename } from 'path';
 import { promises as fs } from 'fs';
 import open from 'open';
+import inquirer from 'inquirer';
 import logger from '../utils/logger.js';
 import apiService from '../core/api.js';
 import auth from '../core/auth.js';
 import buildService from '../utils/build.js';
+import {
+  appendValidatePath,
+  findDiscouragedTemplates,
+  removeDiscouragedTemplates,
+} from '../utils/themeValidation.js';
 import { ThemeManager } from '../core/theme.js';
 
 const previewCommand = new Command('preview')
@@ -56,6 +62,44 @@ const previewCommand = new Command('preview')
           process.exit(1);
         }
         logger.success('✅ Theme structure is valid');
+      }
+
+      const discouraged = await findDiscouragedTemplates(resolvedPath);
+      if (discouraged.length > 0) {
+        logger.warn(
+          '⚠️  These templates are discouraged in themes — Zid manages them ' +
+            'with platform defaults:'
+        );
+        for (const template of discouraged) {
+          logger.warn(`   • ${template}`);
+        }
+
+        const { action } = await inquirer.prompt<{
+          action: 'upload' | 'remove' | 'cancel';
+        }>([
+          {
+            type: 'list',
+            name: 'action',
+            message: 'How do you want to proceed?',
+            choices: [
+              { name: 'Upload them anyway', value: 'upload' },
+              {
+                name: 'Remove them locally and use platform defaults',
+                value: 'remove',
+              },
+              { name: 'Cancel preview', value: 'cancel' },
+            ],
+          },
+        ]);
+
+        if (action === 'cancel') {
+          logger.info('Preview cancelled.');
+          process.exit(0);
+        }
+        if (action === 'remove') {
+          await removeDiscouragedTemplates(resolvedPath, discouraged);
+          logger.success('✅ Removed discouraged templates');
+        }
       }
 
       if (options.build) {
@@ -201,7 +245,9 @@ const previewCommand = new Command('preview')
           const previewUrl = previewResponse.url.startsWith('http')
             ? previewResponse.url
             : `https://${previewResponse.url}`;
+          const validateUrl = appendValidatePath(previewUrl);
           logger.info(`\n🌐 Preview URL: ${previewUrl}`);
+          logger.info(`🔍 Theme validation report: ${validateUrl}`);
           logger.info('🌐 Opening preview in browser...');
 
           await open(previewUrl);

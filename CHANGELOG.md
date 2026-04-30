@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-30
+
+### Added
+- `push` and `preview` (CLI + TUI) prompt before uploading templates Zid
+  manages with platform defaults (`account_profile`, `account_orders`,
+  `account_wishlist`, `loyalty_program`, `address_form`): upload anyway,
+  remove locally, or cancel.
+- Preview now prints a hosted validation report URL at
+  `<preview-url>/validate` alongside the preview URL.
+
+### Changed
+- Required theme files expanded to `layout.jinja`, `header.jinja`,
+  `footer.jinja`, and `templates/home.jinja`. Validation errors list the
+  resolved path and the exact missing files.
+- Theme validation logic extracted to `src/utils/themeValidation.ts` and
+  shared between `BuildService`, the CLI commands, and the TUI views.
+
 ## [1.2.0] - 2026-04-30
 
 This release reshapes Vitrin around theme **memory**, **versioning**, and

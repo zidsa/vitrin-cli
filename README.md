@@ -120,10 +120,19 @@ vitrin push [options]
 Builds and pushes your theme to Zid servers, creating or updating the theme.
 
 Push validates the directory before doing any work and refuses to upload
-a folder that has no `layout.jinja`, so a stale `.vitrin/theme.json` from
-the wrong directory cannot silently push the wrong files. It also runs
-the same asset-compile step as `vitrin build`, so Tailwind/Vite output is
-in the upload, not just sources.
+a folder that is missing any of the required theme files (`layout.jinja`,
+`header.jinja`, `footer.jinja`, `templates/home.jinja`), so a stale
+`.vitrin/theme.json` from the wrong directory cannot silently push the
+wrong files. It also runs the same asset-compile step as `vitrin build`,
+so Tailwind/Vite output is in the upload, not just sources.
+
+If the theme contains any templates that Zid manages with platform
+defaults (`templates/account_profile.jinja`,
+`templates/account_orders.jinja`, `templates/account_wishlist.jinja`,
+`templates/loyalty_program.jinja`, `templates/address_form.jinja`), push
+pauses and asks whether to upload them anyway, remove them locally, or
+cancel. Uploading overrides the platform default — only do it if you
+intend to customize that page.
 
 **Options:**
 - `-s, --store <id>` - Dev store ID to install on
@@ -322,9 +331,10 @@ vitrin build [path] [options]
 Builds theme into a distributable `.zip` package.
 
 **Pipeline:**
-1. Validate theme structure (must contain `layout.jinja`). On failure,
-   reports the resolved path and the missing files so you can confirm the
-   build is looking at the right directory.
+1. Validate theme structure (must contain `layout.jinja`, `header.jinja`,
+   `footer.jinja`, and `templates/home.jinja`). On failure, reports the
+   resolved path and the missing files so you can confirm the build is
+   looking at the right directory.
 2. **Compile theme assets.** If `package.json` declares a `build` script
    (the Growth Theme uses Tailwind + Vite), Vitrin runs `<installer> install`
    when `node_modules` is missing, then `<installer> run build`. The
@@ -363,7 +373,16 @@ Cleaning .DS_Store files...
 vitrin preview [store-id] [theme-path] [options]
 ```
 
-Preview your theme on a dev store.
+Preview your theme on a dev store. After upload, Vitrin prints both the
+preview URL and a hosted **theme validation report** at
+`<preview-url>/validate` — open it to see Zid's automated review of the
+theme that was just deployed.
+
+Like `push`, preview also detects platform-managed templates
+(`templates/account_profile.jinja`, `templates/account_orders.jinja`,
+`templates/account_wishlist.jinja`, `templates/loyalty_program.jinja`,
+`templates/address_form.jinja`) and asks whether to upload them anyway,
+remove them locally and use the platform defaults, or cancel.
 
 **Arguments:**
 - `store-id` - Dev store ID (optional if default store is set)
@@ -697,9 +716,9 @@ my-theme/
 ├── locale/
 │   ├── en.json
 │   └── ar.json
-├── layout.jinja            # required — Vitrin uses this to validate the dir
-├── header.jinja
-├── footer.jinja
+├── layout.jinja            # required
+├── header.jinja            # required
+├── footer.jinja            # required (templates/home.jinja is required too)
 ├── package.json            # `scripts.build` is invoked before zipping
 ├── vite.config.js
 └── theme.json
