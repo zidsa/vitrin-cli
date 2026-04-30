@@ -19,6 +19,10 @@ import uiCommand from './commands/ui.js';
 import themesCommand from './commands/themes.js';
 import pushCommand from './commands/push.js';
 import linkCommand from './commands/link.js';
+import translationsCommand from './commands/translations.js';
+import statusCommand from './commands/status.js';
+import downloadCommand from './commands/download.js';
+import presetsCommand from './commands/presets.js';
 import { checkForUpdates } from './utils/versionCheck.js';
 import authManager from './core/auth.js';
 
@@ -106,6 +110,10 @@ program.addCommand(updateCommand);
 program.addCommand(versionCommand);
 program.addCommand(activateCommand);
 program.addCommand(linkCommand);
+program.addCommand(translationsCommand);
+program.addCommand(statusCommand);
+program.addCommand(downloadCommand);
+program.addCommand(presetsCommand);
 
 program.on('--help', () => {
   console.log('');
@@ -123,6 +131,9 @@ program.on('--help', () => {
   console.log('  $ vitrin update <id>        Update theme version');
   console.log('  $ vitrin push               Push theme to Zid');
   console.log('  $ vitrin link <id>          Link directory to theme');
+  console.log('  $ vitrin status             View/change version status');
+  console.log('  $ vitrin download           Download a version artifact');
+  console.log('  $ vitrin presets <cmd>      Manage theme presets');
   console.log('');
   console.log('For command details:');
   console.log('  $ vitrin <command> --help');

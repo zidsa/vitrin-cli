@@ -1,9 +1,21 @@
-import { jest } from '@jest/globals';
 import { mkdirSync, rmSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
-export const TEST_DIR = join(__dirname, 'fixtures');
+declare const __dirname: string;
+
+const here =
+  typeof __dirname !== 'undefined'
+    ? __dirname
+    : dirname(fileURLToPath(import.meta.url));
+
+export const TEST_DIR = join(here, 'fixtures');
 export const TEST_THEME_DIR = join(TEST_DIR, 'test-theme');
+
+declare const beforeAll: (fn: () => void) => void;
+declare const afterAll: (fn: () => void) => void;
+
+const noop = (): void => undefined;
 
 beforeAll(() => {
   mkdirSync(TEST_DIR, { recursive: true });
@@ -16,9 +28,9 @@ afterAll(() => {
 
 global.console = {
   ...console,
-  log: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
+  log: noop,
+  info: noop,
+  warn: noop,
   error: console.error,
 };
 

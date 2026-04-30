@@ -125,7 +125,6 @@ const previewCommand = new Command('preview')
       try {
         const versionInfo = {
           version: options.version,
-          minimum_api_version: '1.0',
           changelog: { en: 'Preview version' },
         };
 

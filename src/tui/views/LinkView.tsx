@@ -3,8 +3,10 @@ import { Box, Text, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
+import { resolve } from 'path';
+import { promises as fs } from 'fs';
 import { Divider } from '../components/Divider.js';
-import { ThemeManager } from '../../core/theme.js';
+import { ThemeManager, ThemeConfig } from '../../core/theme.js';
 import api from '../../core/api.js';
 import logger from '../../utils/logger.js';
 
@@ -14,12 +16,22 @@ interface LinkViewProps {
   onBack: () => void;
 }
 
-type Step = 'menu' | 'link-input' | 'unlink-confirm' | 'loading';
+type Step =
+  | 'menu'
+  | 'link-input'
+  | 'pick-target-path'
+  | 'enter-target-path'
+  | 'unlink-confirm'
+  | 'loading';
 
 interface ThemeOption {
   id: string;
   name: string;
   slug: string;
+}
+
+interface KnownTheme extends ThemeConfig {
+  path: string;
 }
 
 export const LinkView: React.FC<LinkViewProps> = ({
@@ -34,18 +46,28 @@ export const LinkView: React.FC<LinkViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [themes, setThemes] = useState<ThemeOption[]>([]);
+  const [knownThemes, setKnownThemes] = useState<KnownTheme[]>([]);
   const [showThemesList, setShowThemesList] = useState(false);
+  const [pendingThemeId, setPendingThemeId] = useState<string | null>(null);
+  const [pendingThemeName, setPendingThemeName] = useState<string>('');
+  const [pendingThemeSlug, setPendingThemeSlug] = useState<string>('');
+  const [customPathInput, setCustomPathInput] = useState('');
+  const [targetPath, setTargetPath] = useState<string>(themePath);
 
   useEffect(() => {
-    const checkCurrentLink = async () => {
+    const init = async () => {
       try {
-        const themeManager = new ThemeManager(themePath);
+        const themeManager = new ThemeManager(themePath || process.cwd());
         const config = await themeManager.getConfig();
 
         if (config.id) {
           setCurrentThemeId(config.id);
           setCurrentThemeName(config.name || config.slug || config.id);
         }
+
+        await ThemeManager.pruneGlobalThemes();
+        const known = await ThemeManager.listGlobalThemes();
+        setKnownThemes(known);
 
         try {
           const response = await api.getThemes({ page_size: 100 });
@@ -57,8 +79,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
             }));
             setThemes(themesList);
           }
-        } catch {
-        }
+        } catch {}
 
         setStep('menu');
       } catch (err: any) {
@@ -67,7 +88,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
       }
     };
 
-    void checkCurrentLink();
+    void init();
   }, [themePath]);
 
   useInput((input: string, key: any) => {
@@ -76,14 +97,28 @@ export const LinkView: React.FC<LinkViewProps> = ({
     }
 
     if (key.escape) {
-      if (step === 'link-input' || step === 'unlink-confirm') {
-        setStep('menu');
-        setError(null);
+      if (
+        step === 'link-input' ||
+        step === 'unlink-confirm' ||
+        step === 'pick-target-path' ||
+        step === 'enter-target-path'
+      ) {
+        if (step === 'enter-target-path') {
+          setStep('pick-target-path');
+        } else {
+          setStep('menu');
+          setError(null);
+          setPendingThemeId(null);
+        }
       }
     }
 
     if (key.return && step === 'link-input' && !showThemesList) {
       void handleThemeIdSubmit();
+    }
+
+    if (key.return && step === 'enter-target-path') {
+      void handleCustomPathSubmit();
     }
   });
 
@@ -91,6 +126,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
     setError(null);
 
     if (item.value === 'show') {
+      // no-op
     } else if (item.value === 'link-manual') {
       setStep('link-input');
       setShowThemesList(false);
@@ -106,48 +142,142 @@ export const LinkView: React.FC<LinkViewProps> = ({
     }
   };
 
-  const handleThemeSelect = async (item: { value: string }) => {
-    await linkTheme(item.value);
+  const handleApiThemeSelect = async (item: { value: string }) => {
+    const theme = themes.find(t => t.id === item.value);
+    setPendingThemeId(item.value);
+    setPendingThemeName(theme?.name || item.value);
+    setPendingThemeSlug(theme?.slug || '');
+
+    if (knownThemes.length > 0) {
+      setStep('pick-target-path');
+    } else {
+      setTargetPath(themePath || process.cwd());
+      await commitLink(item.value, theme?.name || item.value, theme?.slug || '', themePath || process.cwd());
+    }
   };
 
-  const linkTheme = async (themeId: string) => {
+  const handleManualLinkSubmit = async () => {
+    if (!themeIdInput.trim()) {
+      setError('Please enter a theme ID');
+      return;
+    }
+    const themeId = themeIdInput.trim();
+    setPendingThemeId(themeId);
+
+    const theme = themes.find(t => t.id === themeId);
+    if (theme) {
+      setPendingThemeName(theme.name);
+      setPendingThemeSlug(theme.slug);
+    } else {
+      try {
+        const response = await api.getTheme(themeId);
+        if (response) {
+          setPendingThemeName(
+            typeof response.name === 'object' ? response.name.en : response.name
+          );
+          setPendingThemeSlug(response.slug || '');
+        }
+      } catch {}
+    }
+
+    if (knownThemes.length > 0) {
+      setStep('pick-target-path');
+    } else {
+      await commitLink(
+        themeId,
+        themes.find(t => t.id === themeId)?.name || themeId,
+        themes.find(t => t.id === themeId)?.slug || '',
+        themePath || process.cwd()
+      );
+    }
+  };
+
+  const handleThemeIdSubmit = handleManualLinkSubmit;
+
+  const handlePickTargetPath = async (item: { value: string }) => {
+    if (!pendingThemeId) {
+      setStep('menu');
+      return;
+    }
+
+    if (item.value === '__custom__') {
+      setCustomPathInput('');
+      setStep('enter-target-path');
+      return;
+    }
+
+    if (item.value === '__current__') {
+      const cwdPath = themePath || process.cwd();
+      await commitLink(
+        pendingThemeId,
+        pendingThemeName,
+        pendingThemeSlug,
+        cwdPath
+      );
+      return;
+    }
+
+    await commitLink(
+      pendingThemeId,
+      pendingThemeName,
+      pendingThemeSlug,
+      item.value
+    );
+  };
+
+  const handleCustomPathSubmit = async () => {
+    const trimmed = customPathInput.trim();
+    if (!trimmed) {
+      setError('Please enter a path');
+      return;
+    }
+    const resolved = resolve(process.cwd(), trimmed);
+    try {
+      const stat = await fs.stat(resolved);
+      if (!stat.isDirectory()) {
+        setError('Path is not a directory');
+        return;
+      }
+    } catch {
+      setError('Directory does not exist');
+      return;
+    }
+    setError(null);
+    if (!pendingThemeId) {
+      setStep('menu');
+      return;
+    }
+    await commitLink(
+      pendingThemeId,
+      pendingThemeName,
+      pendingThemeSlug,
+      resolved
+    );
+  };
+
+  const commitLink = async (
+    themeId: string,
+    name: string,
+    slug: string,
+    path: string
+  ) => {
     setLoading(true);
     setError(null);
+    setTargetPath(path);
 
     try {
-      const themeManager = new ThemeManager(themePath);
-
-      let themeName = themeId;
-      let themeSlug = '';
-
-      const theme = themes.find(t => t.id === themeId);
-      if (theme) {
-        themeName = theme.name;
-        themeSlug = theme.slug;
-      } else {
-        try {
-          const response = await api.getTheme(themeId);
-          if (response) {
-            themeName = typeof response.name === 'object' ? response.name.en : response.name;
-            themeSlug = response.slug;
-          }
-        } catch {
-        }
+      const themeManager = new ThemeManager(path);
+      const existing = await themeManager.getConfig();
+      if (!existing.name && name) {
+        await themeManager.updateConfig({ name });
       }
+      await themeManager.updateThemeId(themeId, slug);
 
-      await themeManager.updateThemeId(themeId, themeSlug);
-
-      logger.success(`✅ Linked to theme: ${themeId}`);
-      if (themeName !== themeId) {
-        logger.info(`📦 Theme: ${themeName}`);
-      }
-      if (themeSlug) {
-        logger.info(`🔗 Slug: ${themeSlug}`);
-      }
+      logger.success(`✅ Linked ${themeId} -> ${path}`);
 
       setTimeout(() => {
-        onComplete(themeName, themePath);
-      }, 1500);
+        onComplete(name || themeId, path);
+      }, 1200);
     } catch (err: any) {
       setError(err.message || 'Failed to link theme');
       setLoading(false);
@@ -167,7 +297,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
 
       setTimeout(() => {
         onComplete();
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setError(err.message || 'Failed to unlink theme');
       setLoading(false);
@@ -181,14 +311,6 @@ export const LinkView: React.FC<LinkViewProps> = ({
     } else {
       setStep('menu');
     }
-  };
-
-  const handleThemeIdSubmit = async () => {
-    if (!themeIdInput.trim()) {
-      setError('Please enter a theme ID');
-      return;
-    }
-    await linkTheme(themeIdInput.trim());
   };
 
   if (step === 'loading' || loading) {
@@ -206,19 +328,37 @@ export const LinkView: React.FC<LinkViewProps> = ({
   }
 
   if (step === 'menu') {
-    const menuItems = [];
+    const menuItems: Array<{ label: string; value: string }> = [];
 
     if (currentThemeId) {
-      menuItems.push({ label: `📎 Currently linked to: ${currentThemeName}`, value: 'show' });
-      menuItems.push({ label: '🔄 Link to Different Theme (Manual)', value: 'link-manual' });
+      menuItems.push({
+        label: `📎 Currently linked to: ${currentThemeName}`,
+        value: 'show',
+      });
+      menuItems.push({
+        label: '🔄 Link to Different Theme (Manual ID)',
+        value: 'link-manual',
+      });
       if (themes.length > 0) {
-        menuItems.push({ label: '📋 Link to Different Theme (Select)', value: 'link-select' });
+        menuItems.push({
+          label: '📋 Link to Different Theme (Select from API)',
+          value: 'link-select',
+        });
       }
-      menuItems.push({ label: '❌ Unlink Current Theme', value: 'unlink' });
+      menuItems.push({
+        label: '❌ Unlink Current Theme',
+        value: 'unlink',
+      });
     } else {
-      menuItems.push({ label: '🔗 Link to Theme (Manual Entry)', value: 'link-manual' });
+      menuItems.push({
+        label: '🔗 Link to Theme (Manual ID)',
+        value: 'link-manual',
+      });
       if (themes.length > 0) {
-        menuItems.push({ label: '📋 Link to Theme (Select from List)', value: 'link-select' });
+        menuItems.push({
+          label: '📋 Link to Theme (Select from API)',
+          value: 'link-select',
+        });
       }
     }
 
@@ -231,7 +371,9 @@ export const LinkView: React.FC<LinkViewProps> = ({
 
         {!currentThemeId && (
           <Box marginTop={1}>
-            <Text color="yellow">⚠️  This directory is not linked to any theme</Text>
+            <Text color="yellow">
+              ⚠️  This directory is not linked to any theme
+            </Text>
           </Box>
         )}
 
@@ -280,13 +422,13 @@ export const LinkView: React.FC<LinkViewProps> = ({
           <Divider />
 
           <Box marginTop={1}>
-            <Text>Choose a theme from the list:</Text>
+            <Text>Choose a theme from the API list:</Text>
           </Box>
 
           <Box marginTop={1}>
             <SelectInput
               items={themeItems}
-              onSelect={handleThemeSelect}
+              onSelect={handleApiThemeSelect}
               indicatorComponent={({ isSelected }: any) => (
                 <Text color="cyan">{isSelected ? '▶' : ' '}</Text>
               )}
@@ -302,7 +444,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
 
           <Box marginTop={1}>
             <Text dimColor>
-              Arrow keys to navigate • Enter to link • Esc/q to go back
+              Arrow keys to navigate • Enter to continue • Esc/q to go back
             </Text>
           </Box>
         </Box>
@@ -323,7 +465,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
           <TextInput
             value={themeIdInput}
             onChange={setThemeIdInput}
-            placeholder="e.g., theme-123"
+            placeholder="e.g., 78cfa32c-029e-456c-acaf-6ecdbe45c73d"
           />
         </Box>
 
@@ -337,6 +479,103 @@ export const LinkView: React.FC<LinkViewProps> = ({
           <Text dimColor>
             Enter theme ID and press Enter • Esc/q to go back
           </Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (step === 'pick-target-path') {
+    const items: Array<{ label: string; value: string }> = [];
+    items.push({
+      label: `📍 Current directory: ${themePath || process.cwd()}`,
+      value: '__current__',
+    });
+    for (const known of knownThemes) {
+      const label = `📁 ${known.name || 'theme'} (${known.path})`;
+      items.push({ label, value: known.path });
+    }
+    items.push({
+      label: '✏️  Enter a custom path...',
+      value: '__custom__',
+    });
+
+    return (
+      <Box flexDirection="column" paddingX={2} paddingY={1}>
+        <Text color="cyan" bold>
+          📂 Where should "{pendingThemeName}" be linked?
+        </Text>
+        <Divider />
+
+        <Box marginTop={1} flexDirection="column">
+          <Text>
+            Pick a local directory to associate with theme{' '}
+            <Text color="yellow">{pendingThemeId}</Text>:
+          </Text>
+          <Text dimColor>
+            (writes .vitrin/theme.json there so vitrin can build/push from it)
+          </Text>
+        </Box>
+
+        <Box marginTop={1}>
+          <SelectInput
+            items={items}
+            onSelect={handlePickTargetPath}
+            indicatorComponent={({ isSelected }: any) => (
+              <Text color="cyan">{isSelected ? '▶' : ' '}</Text>
+            )}
+            itemComponent={({ label, isSelected }: any) => (
+              <Text color={isSelected ? 'cyan' : 'white'}>{label}</Text>
+            )}
+          />
+        </Box>
+
+        {error && (
+          <Box marginTop={1}>
+            <Text color="red">❌ {error}</Text>
+          </Box>
+        )}
+
+        <Box marginTop={1}>
+          <Text dimColor>↑↓ Navigate • Enter to choose • Esc to go back</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (step === 'enter-target-path') {
+    return (
+      <Box flexDirection="column" paddingX={2} paddingY={1}>
+        <Text color="cyan" bold>
+          ✏️  Enter target directory
+        </Text>
+        <Divider />
+
+        <Box marginTop={1}>
+          <TextInput
+            value={customPathInput}
+            onChange={setCustomPathInput}
+            placeholder="./my-theme or /absolute/path"
+          />
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>
+            Resolved:{' '}
+            <Text color="cyan">
+              {customPathInput
+                ? resolve(process.cwd(), customPathInput)
+                : '<path>'}
+            </Text>
+          </Text>
+        </Box>
+
+        {error && (
+          <Box marginTop={1}>
+            <Text color="red">❌ {error}</Text>
+          </Box>
+        )}
+
+        <Box marginTop={1}>
+          <Text dimColor>Enter to confirm • Esc to go back</Text>
         </Box>
       </Box>
     );

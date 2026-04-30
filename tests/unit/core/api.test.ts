@@ -100,7 +100,6 @@ describe('ApiService', () => {
       const themeId = 'theme-123';
       const versionData = {
         version: '1.0.0',
-        minimum_api_version: '1.0',
         changelog: { en: 'Initial version' },
       };
 
