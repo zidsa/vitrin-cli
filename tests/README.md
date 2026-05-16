@@ -123,7 +123,7 @@ const mockDevStore = {
   id: 14,
   name: 'Test Store',
   email: 'test@partner.email',
-  link: 'https://test.zidtest.com'
+  link: 'https://test-store.example.com'
 };
 ```
 

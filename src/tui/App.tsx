@@ -15,6 +15,8 @@ import { SwitchThemeView } from './views/SwitchThemeView.js';
 import { VersionsView } from './views/VersionsView.js';
 import { TranslationsView } from './views/TranslationsView.js';
 import { AuthStatusView } from './views/AuthStatusView.js';
+import { ReportIssuesView } from './views/ReportIssuesView.js';
+import { ThemeEditorView } from './views/ThemeEditorView.js';
 import auth from '../core/auth.js';
 import { ThemeManager } from '../core/theme.js';
 import { getVersion } from '../utils/getVersion.js';
@@ -33,7 +35,9 @@ export type View =
   | 'switch'
   | 'versions'
   | 'translations'
-  | 'auth';
+  | 'auth'
+  | 'report-issues'
+  | 'theme-editor';
 
 interface AppState {
   currentView: View;
@@ -320,6 +324,16 @@ export const App: React.FC = () => {
             onLogout={() => {
               setState(prev => ({ ...prev, isAuthenticated: false, currentView: 'dashboard' }));
             }}
+          />
+        );
+      case 'report-issues':
+        return <ReportIssuesView onBack={() => navigateTo('dashboard')} />;
+      case 'theme-editor':
+        return (
+          <ThemeEditorView
+            themePath={state.currentThemePath}
+            themeName={state.currentTheme}
+            onBack={() => navigateTo('dashboard')}
           />
         );
       case 'link':

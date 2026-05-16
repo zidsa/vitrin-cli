@@ -71,9 +71,9 @@ Both `vitrin push` and `vitrin preview` (CLI **and** TUI) follow the same pre-fl
 
 If you add a new pre-flight check, add it in **both** the CLI command and the corresponding TUI view — the two paths are intentionally parallel, not delegated.
 
-### API base URL & internal env vars
+### API base URL & env overrides
 
-`VITRIN_API_URL` and `VITRIN_PARTNER_URL` are internal-only overrides documented in `CONFIG.md`. They're loaded from `~/.vitrin/config.json` on startup so a developer can set them once and have every invocation pick them up. Don't surface them in user-facing help.
+`VITRIN_API_URL` and `VITRIN_PARTNER_URL` are developer-machine overrides for the API and partner-dashboard base URLs. They're loaded from `~/.vitrin/config.json` on startup so a developer can set them once and have every invocation pick them up. Don't surface them in user-facing help or public docs — production defaults (`https://api.zid.sa`, `https://partner.zid.sa`) are what end users should ever see.
 
 ## Release process
 

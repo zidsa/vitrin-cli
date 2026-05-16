@@ -18,7 +18,7 @@ interface DashboardProps {
 
 interface MenuItem {
   label: string;
-  value: View | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'exit';
+  value: View | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit';
   key: string;
   requiresAuth?: boolean;
   requiresTheme?: boolean;
@@ -111,8 +111,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '✨ Create New Theme', value: 'new', key: '1' },
     { label: '🚀 Push to Zid', value: 'push', key: '2', requiresTheme: true },
     { label: '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
-    { label: '👁️  Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
+    { label: '👁️ Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
     { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true },
+    {
+      label: '🎨 Open Theme Editor',
+      value: 'theme-editor' as View,
+      key: 'e',
+      requiresAuth: true,
+      requiresTheme: true,
+      requiresLinked: true,
+    },
     { label: '🔗 Link/Unlink Theme', value: 'link', key: '6' },
     {
       label: knownThemeCount > 0
@@ -137,6 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       key: '0',
     },
     { label: '⚙️  Settings', value: 'settings', key: '9' },
+    { label: '🐞 Report Issues', value: 'report-issues', key: 'r' },
     { label: '🚪 Exit', value: 'exit', key: 'q' },
   ];
 
@@ -154,7 +163,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   });
 
-  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'exit' }) => {
+  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit' }) => {
     if (item.value === 'exit') {
       process.exit(0);
     } else if (item.value === 'versions' && themeConfig?.id) {

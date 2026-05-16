@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-16
+
+### Added
+- TUI dashboard: **Open Theme Editor** (`e`) — opens the Zid dashboard's
+  theme editor for a recorded store installation at
+  `https://dashboard.zid.sa/ar-sa/stores/{store-id}/theme-editor/{installation-id}`.
+  Auto-opens when only one store has installed the theme; otherwise lets
+  the user pick. Requires the theme to be linked and previously
+  previewed/activated on at least one store.
+- TUI dashboard: **Report Issues** (`r`) — opens
+  https://github.com/zidsa/vitrin-cli/issues in the default browser, with
+  a URL fallback if the browser can't be launched.
+
 ## [1.2.1] - 2026-04-30
 
 ### Added
@@ -33,6 +46,8 @@ version lifecycle (status, changelog, bumps) directly in the TUI.
 ### Added
 
 **New commands**
+- `vitrin translations` command to extract, update, and compile theme
+  translation catalogs.
 - `vitrin status` — view or change a theme version status. Implements the
   full backend state machine, filters admin-only transitions
   (`in_review` / `approved` / `rejected`) to what partners can actually
@@ -179,9 +194,6 @@ version lifecycle (status, changelog, bumps) directly in the TUI.
   because a stale `.vitrin/theme.json` claims a linked theme id.
 
 ### Migration notes
-- If you were relying on the package-lock.json that lived in earlier
-  development drops, this branch is pnpm-only (`pnpm-lock.yaml` and
-  `packageManager: pnpm@9.15.0` in `package.json`).
 - A new directory layout for Vitrin's local state:
   - `<theme>/.vitrin/theme.json` — local theme link/push state
   - `~/.vitrin/themes.json` — global registry (NEW)
@@ -192,8 +204,6 @@ version lifecycle (status, changelog, bumps) directly in the TUI.
 
 ## [1.1.6] - 2025-10-22
 ### Added
-- `vitrin translations` command to extract, update, and compile theme
-  translation catalogs.
 - New default theme template.
 
 ## [1.1.5] - 2025-10-20

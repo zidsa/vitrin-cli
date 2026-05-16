@@ -74,9 +74,7 @@ vitrin new <theme-name> [options]
 
 Creates a new theme. By default, clones the official Growth Theme template
 from <https://github.com/zidsa/growth-theme> and writes a `.vitrin/theme.json`
-into the new directory. The template URL is disclosed in the CLI output so
-you know exactly what is being cloned. Vitrin-specific notes are written to
-`VITRIN.md`; the template's own `README.md` is left untouched.
+into the new directory.
 
 **Options:**
 - `-d, --directory <dir>` — Target directory (default: theme name)
@@ -107,10 +105,6 @@ Found theme files in /Users/you/checkouts/acme-theme
 Saved to local .vitrin/theme.json and global registry.
 ```
 
-The path is recorded in `~/.vitrin/themes.json` immediately, so the theme
-shows up in *Switch Theme* (TUI) **before** you push to Zid for the first
-time.
-
 ### Push Theme to Zid
 
 ```bash
@@ -123,16 +117,8 @@ Push validates the directory before doing any work and refuses to upload
 a folder that is missing any of the required theme files (`layout.jinja`,
 `header.jinja`, `footer.jinja`, `templates/home.jinja`), so a stale
 `.vitrin/theme.json` from the wrong directory cannot silently push the
-wrong files. It also runs the same asset-compile step as `vitrin build`,
-so Tailwind/Vite output is in the upload, not just sources.
+wrong files.
 
-If the theme contains any templates that Zid manages with platform
-defaults (`templates/account_profile.jinja`,
-`templates/account_orders.jinja`, `templates/account_wishlist.jinja`,
-`templates/loyalty_program.jinja`, `templates/address_form.jinja`), push
-pauses and asks whether to upload them anyway, remove them locally, or
-cancel. Uploading overrides the platform default — only do it if you
-intend to customize that page.
 
 **Options:**
 - `-s, --store <id>` - Dev store ID to install on
@@ -140,7 +126,7 @@ intend to customize that page.
 - `-v, --version <version>` - Version number (X.Y.Z)
 - `-c, --changelog <text>` - English changelog for this push
 - `--changelog-ar <text>` - Arabic changelog (sent as `{ en, ar }`)
-- `-n, --new-version` - Cut a brand new version instead of updating the latest one
+- `-n, --new-version` - Create a brand-new version instead of updating the latest one
 - `-b, --bump <kind>` - With `--new-version`, auto-compute the next version
   from the latest server version: `patch`, `minor`, or `major`. Overrides
   `--version` unless both are provided.
@@ -191,9 +177,7 @@ vitrin push --new-version
 vitrin link [theme-id] [options]
 ```
 
-Link or unlink current directory to a Zid theme. Useful for managing
-multiple themes with the same codebase, or adopting an existing API theme
-into a local checkout.
+Link or unlink current directory to a Zid theme. 
 
 **Options:**
 - `-p, --path <path>` - Path to theme directory (default: current)
@@ -243,24 +227,19 @@ on any theme row.
 **What it shows.** Each version is listed with its number, status
 (Published / Draft / Pending Review / …), creation date, and the first
 line of its English changelog. Selecting a row reveals the full detail
-panel, including both English and Arabic changelogs and the minimum
-API version.
+panel.
 
 **Editing a changelog.** Press `[E]` on a version to edit. The form
 walks through `changelog.en` then `changelog.ar` (optional), and saves
-via `PATCH /v2/themes/{id}/versions/{vid}/`. English is required; Arabic
-is dropped from the payload if left empty.
+via `PATCH /v2/themes/{id}/versions/{vid}/`. Only one language required.
 
 **Changing status.** Press `[S]` on a version to open a status picker.
 Vitrin pulls allowed transitions from the same partner-allowed
-transition table that `vitrin status` uses, and only shows targets you
-can actually reach (admin-only ones like `in_review` / `approved` /
-`rejected` are filtered out). `in_review` and `deprecated` versions are
-flagged as locked.
+transition table that `vitrin status` uses.
 
 ### Intentional new-version push
 
-The push wizard makes creating a new version a deliberate, multi-step
+The push wizard makes creating a new version a deliberate, multistep
 choice:
 
 1. **Pick deployment target** — a store to install on, or *push without
@@ -268,7 +247,7 @@ choice:
 2. **Pick strategy** — *Update latest version* is highlighted as the
    default and is the right choice for template patches, copy tweaks
    and bugfixes. *Create a new version* is required when asset URLs
-   move or you ship breaking changes.
+   move, or you ship breaking changes.
 3. **Confirmation (new-version path only)** — Vitrin warns that a new
    version is permanent and existing stores stay on their current
    version until they explicitly update. You have to confirm before
@@ -312,7 +291,7 @@ Vitrin maintains a registry at `~/.vitrin/themes.json` of every theme you
 have created or linked, keyed by absolute path. Each entry holds the same
 fields as the project-local `.vitrin/theme.json` (id, slug, name, push
 history, installations, …), so you have a single place to see all themes
-across all directories — even ones that have never been pushed.
+across all directories.
 
 The registry is updated automatically by `vitrin new`, `vitrin link`,
 `vitrin push`, and any TUI flow that touches theme state. Stale entries
@@ -378,12 +357,6 @@ preview URL and a hosted **theme validation report** at
 `<preview-url>/validate` — open it to see Zid's automated review of the
 theme that was just deployed.
 
-Like `push`, preview also detects platform-managed templates
-(`templates/account_profile.jinja`, `templates/account_orders.jinja`,
-`templates/account_wishlist.jinja`, `templates/loyalty_program.jinja`,
-`templates/address_form.jinja`) and asks whether to upload them anyway,
-remove them locally and use the platform defaults, or cancel.
-
 **Arguments:**
 - `store-id` - Dev store ID (optional if default store is set)
 - `theme-path` - Path to theme directory (default: current directory)
@@ -442,8 +415,8 @@ Fetching dev stores...
 
 ID          Name                     Email                         Domain
 --------------------------------------------------------------------------------
-123         Test Store 1             test1@example.com            test1.zidtest.com
-456         Test Store 2             test2@example.com            test2.zidtest.com
+123         Test Store 1             test1@example.com            test1.zid.store
+456         Test Store 2             test2@example.com            test2.zid.store
 ```
 
 ### Theme Installation
@@ -576,7 +549,8 @@ vitrin presets <subcommand> [options]
 
 Manage theme presets — named bundles of template settings that ship as the
 "starter looks" for a theme. Each theme can have multiple presets, one per
-`type`.
+`type`, presets of type `default` gets installed on stores' first
+installation of the theme.
 
 **Subcommands:**
 - `list` - List presets (`--type <t>` to filter, `--json` for raw output)
@@ -616,6 +590,9 @@ Extracts translatable strings from `.jinja` templates (anything wrapped in
 `_("...")`), writes a `locale/messages.pot` template, and updates per-language
 `messages.po` / `messages.mo` catalogs in place. Re-run it any time templates
 change — existing translations are preserved.
+
+gettext catalogs support natural language keys, so use a natural language (e.g. english)
+inside the templates and add one catalog for the other.
 
 **Options:**
 - `-l, --languages <langs...>` - Languages to update/compile (default: `ar`)
@@ -698,28 +675,27 @@ Expected theme structure (Growth Theme layout):
 ```
 my-theme/
 ├── .vitrin/
-│   └── theme.json          # local link/push state (managed by Vitrin)
+│   └── theme.json                 # local link/push state (managed by Vitrin)
 ├── assets/
-│   ├── tailwindcss.css     # Tailwind source (input)
-│   ├── styles.css          # Tailwind output — generated by `build:css`
+│   ├── tailwindcss.css            # Tailwind source (input)
+│   ├── styles.css                 # Tailwind output — generated by `build:css`
 │   ├── js/
-│   │   ├── main.js         # Vite entry — bundled to assets/dist/theme.js
-│   │   └── cart/controller.js  # Vite entry — bundled to assets/dist/cart-controller.js
-│   ├── dist/               # Vite outputs — generated by `build:js`
+│   │   ├── main.js                # Vite entry — bundled to assets/dist/theme.js
+│   │   └── cart/controller.js     # Vite entry — bundled to assets/dist/cart-controller.js
+│   ├── dist/                      # Vite outputs — generated by `build:js`
 │   └── images/
-├── components/             # Reusable .jinja partials
-├── sections/               # Dynamic sections for the theme editor
+├── components/                    # Reusable .jinja partials
+├── sections/                      # Dynamic sections for the theme editor
 ├── templates/
 │   ├── home.jinja
 │   ├── product.jinja
 │   └── cart.jinja
 ├── locale/
-│   ├── en.json
-│   └── ar.json
-├── layout.jinja            # required
-├── header.jinja            # required
-├── footer.jinja            # required (templates/home.jinja is required too)
-├── package.json            # `scripts.build` is invoked before zipping
+│   ├── ar/LC_MESSAGES/messages.po # Arabic translations catalog
+├── layout.jinja                   # required
+├── header.jinja                   # required
+├── footer.jinja                   # required (templates/home.jinja is required too)
+├── package.json                   # `scripts.build` is invoked before zipping
 ├── vite.config.js
 └── theme.json
 ```

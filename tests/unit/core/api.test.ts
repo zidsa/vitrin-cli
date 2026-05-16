@@ -21,7 +21,7 @@ describe('ApiService', () => {
         response: { use: jest.fn() },
       },
       defaults: {
-        baseURL: 'https://testing-api.zid.sa',
+        baseURL: 'https://api.zid.sa',
         headers: {},
       },
     };
@@ -38,7 +38,7 @@ describe('ApiService', () => {
     it('should use default URL when no environment variable is set', () => {
       expect(mockedAxios.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://testing-api.zid.sa',
+          baseURL: 'https://api.zid.sa',
         })
       );
     });
