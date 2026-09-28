@@ -745,6 +745,18 @@ export class ApiService {
     }
   }
 
+  async getStoreTheme(storeId: string, installationId: string): Promise<any> {
+    const response = await this.client.get(
+      `/v2/stores/themes/${installationId}/`,
+      {
+        headers: {
+          'store-id': storeId,
+        },
+      }
+    );
+    return response.data;
+  }
+
   async activateTheme(storeId: string, installationId: string): Promise<any> {
     try {
       const response = await this.client.post(
@@ -792,26 +804,16 @@ export class ApiService {
     storeId: string,
     storeThemeId: string
   ): Promise<{ url: string }> {
-    try {
-      const response = await this.client.post(
-        `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
-        {},
-        {
-          headers: {
-            'store-id': storeId,
-          },
-        }
-      );
-      return response.data;
-    } catch (error: any) {
-      const errorMessage = this.extractErrorMessage(error.response?.data);
-      if (errorMessage) {
-        logger.error(`Failed to get preview URL: ${errorMessage}`);
-        throw new Error(`Failed to get preview URL: ${errorMessage}`);
+    const response = await this.client.post(
+      `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
+      {},
+      {
+        headers: {
+          'store-id': storeId,
+        },
       }
-      logger.error('Failed to get preview URL', error as Error);
-      throw error;
-    }
+    );
+    return response.data;
   }
 
   setBaseURL(baseURL: string): void {

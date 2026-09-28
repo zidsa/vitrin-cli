@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { resolve, basename } from 'path';
 import logger from '../utils/logger.js';
 import buildService from '../utils/build.js';
+import { ThemeManager } from '../core/theme.js';
 import type { BuildOptions } from '../types/index.js';
 
 const buildCommand = new Command('build')
@@ -22,7 +23,11 @@ const buildCommand = new Command('build')
 
       if (options.validate) {
         logger.loading('Validating theme structure...');
-        const isValid = await buildService.validateThemeStructure(resolvedPath);
+        const { type } = await new ThemeManager(resolvedPath).getConfig();
+        const isValid = await buildService.validateThemeStructure(
+          resolvedPath,
+          type
+        );
         if (!isValid) {
           logger.error('Theme validation failed');
           process.exit(1);

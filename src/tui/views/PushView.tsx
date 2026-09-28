@@ -363,7 +363,9 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       if (isNewTheme) {
         addLog('✨ Creating new theme on Zid...');
         theme = await api.createTheme({
-          name: themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
+          name: themeConfig.name
+            ? { en: themeConfig.name, ar: themeConfig.name }
+            : themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
           description:
             themeJson.description || { en: 'A new theme', ar: 'موضوع جديد' },
           slug: themeJson.slug || `theme-${Date.now()}`,

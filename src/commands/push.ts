@@ -209,7 +209,9 @@ async function pushTheme(options: PushOptions): Promise<void> {
     if (isNewTheme) {
       spinner.start('Creating new theme on Zid server...');
       theme = await api.createTheme({
-        name: themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
+        name: themeConfig.name
+          ? { en: themeConfig.name, ar: themeConfig.name }
+          : themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
         description: themeJson.description || {
           en: 'A new theme',
           ar: 'موضوع جديد',
@@ -364,7 +366,7 @@ async function pushTheme(options: PushOptions): Promise<void> {
       spinner.start(`Installing theme on store ${options.store}...`);
       const storesResponse = await api.getDevStores();
       const targetStore = storesResponse.stores.find(
-        s => s.store_id === options.store
+        s => String(s.store_id) === options.store
       );
 
       if (!targetStore) {

@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vitrin link <id>` fetches the theme by id instead of scanning the first
   100 themes, so themes of any type can be linked.
 
+### Fixed
+- `push --store <id>` no longer fails with "Store with ID … not found".
+- `push` creates the theme under the name from `vitrin new` / `link` instead
+  of the `package.json` name or "Theme".
+- The preview validation link points at `/validate`, which also works for
+  product landing page previews.
+
 ## [1.3.0] - 2026-05-16
 
 ### Added

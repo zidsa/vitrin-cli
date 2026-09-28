@@ -35,6 +35,9 @@ const previewCommand = new Command('preview')
 
       const themeManager = new ThemeManager(themePath);
       const themeConfig = await themeManager.getConfig();
+      const themeType = options.themeId
+        ? (await apiService.getTheme(options.themeId)).type
+        : themeConfig.type;
 
       if (!storeId && themeConfig?.defaultStore) {
         storeId = themeConfig.defaultStore;
@@ -58,7 +61,7 @@ const previewCommand = new Command('preview')
         logger.loading('Validating theme structure...');
         const isValid = await buildService.validateThemeStructure(
           resolvedPath,
-          themeConfig.type
+          themeType
         );
         if (!isValid) {
           logger.error('❌ Theme validation failed');
@@ -157,7 +160,7 @@ const previewCommand = new Command('preview')
               ar: options.description || 'Preview theme',
             },
             slug: themeSlug,
-            type: themeConfig.type,
+            type: themeType,
           };
           const theme = await apiService.createTheme(createData);
           themeId = theme.id;
@@ -227,7 +230,7 @@ const previewCommand = new Command('preview')
 
         const draftedSettings = await buildService.getDraftedSettings(
           themePath,
-          themeConfig.type
+          themeType
         );
         if (draftedSettings) {
           await apiService.setDraftSettings(
@@ -245,7 +248,7 @@ const previewCommand = new Command('preview')
 
         try {
           const previewResponse =
-            themeConfig.type === 'product_landing_page'
+            themeType === 'product_landing_page'
               ? await apiService.getProductLandingPagePreviewUrl(
                   storeId,
                   installation.id
@@ -261,10 +264,14 @@ const previewCommand = new Command('preview')
 
           await open(previewUrl);
         } catch (previewErr) {
+          if (themeType === 'product_landing_page') {
+            logger.error((previewErr as Error).message);
+            process.exit(1);
+          }
           logger.debug('Could not get preview URL or open browser');
         }
 
-        if (themeConfig.type !== 'product_landing_page') {
+        if (themeType !== 'product_landing_page') {
           logger.info(
             `\n💡 To activate: vitrin activate ${storeId} ${installation.id}`
           );

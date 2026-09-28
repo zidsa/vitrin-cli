@@ -224,6 +224,12 @@ export async function registerExistingTheme(
   const themeManager = new ThemeManager(resolvedPath);
   const existing = await themeManager.getConfig();
 
+  if (type && existing.id && existing.type !== type) {
+    throw new Error(
+      `${basename(resolvedPath)} is linked to theme ${existing.id}, which is not a product landing page theme. Run "vitrin link" in it to unlink first.`
+    );
+  }
+
   await themeManager.init({
     name: existing.name || themeName,
     type: type || existing.type,

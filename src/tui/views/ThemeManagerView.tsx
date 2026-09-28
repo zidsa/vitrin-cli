@@ -71,15 +71,19 @@ export const ThemeManagerView: React.FC<ThemeManagerViewProps> = ({
         return;
       }
 
-      const response = await apiService.getThemes({ page_size: 100 });
+      const responses = await Promise.all([
+        apiService.getThemes({ page_size: 100 }),
+        apiService.getThemes({ page_size: 100, type: 'product_landing_page' }),
+      ]);
+      const results = responses.flatMap(response => response.results ?? []);
 
-      if (!response.results || response.results.length === 0) {
+      if (results.length === 0) {
         setError('No themes found. Create one first.');
         setMode('error');
         return;
       }
 
-      setThemes(response.results);
+      setThemes(results);
       setMode('list');
     } catch (err: any) {
       setError(err.message || 'Failed to load themes');
