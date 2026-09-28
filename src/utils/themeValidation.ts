@@ -1,12 +1,18 @@
 import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
 import logger from './logger.js';
+import type { ThemeType } from '../types/index.js';
 
 export const REQUIRED_THEME_FILES = [
   'layout.jinja',
   'header.jinja',
   'footer.jinja',
   'templates/home.jinja',
+] as const;
+
+export const PRODUCT_LANDING_PAGE_REQUIRED_FILES = [
+  'layout.jinja',
+  'templates/landing.jinja',
 ] as const;
 
 export const DISCOURAGED_THEME_TEMPLATES = [
@@ -24,14 +30,16 @@ export interface ThemeStructureValidation {
 }
 
 export async function validateThemeStructure(
-  themePath: string
+  themePath: string,
+  type?: ThemeType
 ): Promise<boolean> {
-  const result = await validateThemeStructureDetailed(themePath);
+  const result = await validateThemeStructureDetailed(themePath, type);
   return result.valid;
 }
 
 export async function validateThemeStructureDetailed(
-  themePath: string
+  themePath: string,
+  type?: ThemeType
 ): Promise<ThemeStructureValidation> {
   const resolvedPath = resolve(themePath || process.cwd());
 
@@ -43,8 +51,12 @@ export async function validateThemeStructureDetailed(
   }
 
   const missing: string[] = [];
+  const required =
+    type === 'product_landing_page'
+      ? PRODUCT_LANDING_PAGE_REQUIRED_FILES
+      : REQUIRED_THEME_FILES;
 
-  for (const file of REQUIRED_THEME_FILES) {
+  for (const file of required) {
     try {
       await fs.access(join(resolvedPath, file));
     } catch {
@@ -100,7 +112,7 @@ export async function removeDiscouragedTemplates(
 export function appendValidatePath(url: string): string {
   try {
     const parsed = new URL(url);
-    parsed.pathname = parsed.pathname.replace(/\/+$/, '') + '/validate';
+    parsed.pathname = '/validate';
     return parsed.toString();
   } catch {
     const [base = url, query = ''] = url.split('?');

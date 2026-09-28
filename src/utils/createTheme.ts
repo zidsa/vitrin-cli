@@ -2,6 +2,7 @@ import { resolve, join, basename } from 'path';
 import { promises as fs } from 'fs';
 import logger from './logger.js';
 import { ThemeManager } from '../core/theme.js';
+import type { ThemeType } from '../types/index.js';
 
 export const TEMPLATE_REPO_URL = 'https://github.com/zidsa/growth-theme';
 export const TEMPLATE_REPO_GIT = `${TEMPLATE_REPO_URL}.git`;
@@ -10,12 +11,14 @@ export interface CreateThemeOptions {
   themeName: string;
   targetDir?: string;
   skipGit?: boolean;
+  type?: ThemeType | undefined;
   onProgress?: (message: string) => void;
 }
 
 export interface RegisterExistingOptions {
   themeName: string;
   existingPath: string;
+  type?: ThemeType | undefined;
   onProgress?: (message: string) => void;
 }
 
@@ -41,8 +44,14 @@ async function looksLikeThemeDirectory(path: string): Promise<boolean> {
 export async function createThemeFromTemplate(
   options: CreateThemeOptions
 ): Promise<string> {
-  const { themeName, targetDir, skipGit, onProgress } = options;
+  const { themeName, targetDir, skipGit, type, onProgress } = options;
   const log = onProgress || ((msg: string) => logger.info(msg));
+  if (type === 'product_landing_page') {
+    throw new Error(
+      'There is no starter template for product landing page themes yet. ' +
+        'Use --from-existing <path> to register a directory you already have.'
+    );
+  }
 
   const resolvedPath = resolve(process.cwd(), targetDir || themeName);
 
@@ -138,6 +147,7 @@ vitrin push
   const themeManager = new ThemeManager(resolvedPath);
   await themeManager.init({
     name: themeName,
+    type,
     path: resolvedPath,
     createdAt: new Date().toISOString(),
   });
@@ -189,7 +199,7 @@ npm-debug.log*
 export async function registerExistingTheme(
   options: RegisterExistingOptions
 ): Promise<string> {
-  const { themeName, existingPath, onProgress } = options;
+  const { themeName, existingPath, type, onProgress } = options;
   const log = onProgress || ((msg: string) => logger.info(msg));
 
   const resolvedPath = resolve(process.cwd(), existingPath);
@@ -216,6 +226,7 @@ export async function registerExistingTheme(
 
   await themeManager.init({
     name: existing.name || themeName,
+    type: type || existing.type,
     path: resolvedPath,
     createdAt: existing.createdAt || new Date().toISOString(),
   });

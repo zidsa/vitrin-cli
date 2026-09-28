@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-24
+
+### Added
+- `vitrin new --landing --from-existing <path>` registers a product landing page theme
+  (`layout.jinja` + `templates/landing.jinja`, served at `/l/<slug>`) and
+  records `type` in `.vitrin/theme.json`; `link` records it from the server.
+- `push` and `preview` read the type: landing file validation, draft settings
+  from `templates/landing.json` / `layout.json`, and preview via
+  `POST /v2/stores/themes/{id}/product-landing-page-preview/`, which opens a
+  temporary page bound to the dev store's first published product.
+- `vitrin themes list --type product_landing_page`.
+- TUI dashboard: **Create Product Landing Page Theme** (`l`).
+
+### Changed
+- `push --activate`, the TUI *Activate Theme* / *Open Theme Editor* entries and
+  the post-preview activate hint are skipped for product landing page themes.
+- `vitrin link <id>` fetches the theme by id instead of scanning the first
+  100 themes, so themes of any type can be linked.
+
 ## [1.3.0] - 2026-05-16
 
 ### Added

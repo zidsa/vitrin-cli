@@ -211,6 +211,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       setProgress(0);
 
       const buildService = (await import('../../utils/build.js')).default;
+      const themeType = (await new ThemeManager(resolvedPath).getConfig()).type;
 
       await buildService.removeDSStore(resolvedPath);
       themeZipPath = await buildService.zipTheme(themeNameBase, resolvedPath, {
@@ -233,6 +234,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
           name: { en: themeNameBase },
           description: { en: `${themeNameBase} theme` },
           slug: themeSlug,
+          type: themeType,
         };
         
         try {
@@ -309,7 +311,10 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       
       setProgress(80);
 
-      const draftedSettings =  await buildService.getDraftedSettings(themePath);
+      const draftedSettings = await buildService.getDraftedSettings(
+        themePath,
+        themeType
+      );
       if (draftedSettings) {
         await apiService.setDraftSettings(
           storeIdStr,
@@ -323,10 +328,16 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       
       setStatusMessage('Getting preview URL...');
       
-      const previewResponse = await apiService.getPreviewUrl(
-        storeIdStr,
-        installationResponse.id || null
-      );
+      const previewResponse =
+        themeType === 'product_landing_page'
+          ? await apiService.getProductLandingPagePreviewUrl(
+              storeIdStr,
+              installationResponse.id
+            )
+          : await apiService.getPreviewUrl(
+              storeIdStr,
+              installationResponse.id || null
+            );
       const fullUrl = previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`;
       setPreviewUrl(fullUrl);
       setValidateUrl(appendValidatePath(fullUrl));
@@ -389,7 +400,8 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
     } else if (theme.isLink) {
       try {
         setLoading(true);
-        const themes = await apiService.getThemes({ page_size: 100 });
+        const { type } = await new ThemeManager(resolvedPath).getConfig();
+        const themes = await apiService.getThemes({ page_size: 100, type });
 
         if (!themes.results || themes.results.length === 0) {
           await startProceed(selectedStore!, null, themeNameBase, resolvedPath);

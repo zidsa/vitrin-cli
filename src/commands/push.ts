@@ -90,10 +90,14 @@ async function pushTheme(options: PushOptions): Promise<void> {
     }
 
     const themePath = process.cwd();
+    const themeManager = new ThemeManager(themePath);
+    const themeConfig = await themeManager.getConfig();
 
     spinner.start('Validating theme directory...');
-    const validation =
-      await buildService.validateThemeStructureDetailed(themePath);
+    const validation = await buildService.validateThemeStructureDetailed(
+      themePath,
+      themeConfig.type
+    );
     if (!validation.valid) {
       spinner.fail(
         `Missing ${validation.missing.join(', ')} in ${validation.resolvedPath}`
@@ -153,9 +157,6 @@ async function pushTheme(options: PushOptions): Promise<void> {
       spinner.succeed(`Assets built with ${assetResult.installer}`);
     }
 
-    const themeManager = new ThemeManager(themePath);
-    const themeConfig = await themeManager.getConfig();
-
     spinner.start('Reading theme configuration...');
     const themeJson = await readThemeConfig(themePath);
     spinner.succeed('Theme configuration loaded');
@@ -214,6 +215,7 @@ async function pushTheme(options: PushOptions): Promise<void> {
           ar: 'موضوع جديد',
         },
         slug: themeJson.slug || `theme-${Date.now()}`,
+        type: themeConfig.type,
       });
       await themeManager.updateThemeId(theme!.id, theme!.slug);
       spinner.succeed(`Created new theme: ${theme!.name.en}`);
@@ -376,7 +378,11 @@ async function pushTheme(options: PushOptions): Promise<void> {
       );
       spinner.succeed(`Theme installed on store ${options.store}`);
 
-      if (options.activate) {
+      if (options.activate && themeConfig.type === 'product_landing_page') {
+        spinner.warn(
+          'Product landing page themes are never activated; merchants create pages from them instead'
+        );
+      } else if (options.activate) {
         spinner.start('Activating theme...');
         try {
           await api.activateTheme(options.store, installation.id);

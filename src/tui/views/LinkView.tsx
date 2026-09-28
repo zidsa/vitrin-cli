@@ -7,6 +7,7 @@ import { resolve } from 'path';
 import { promises as fs } from 'fs';
 import { Divider } from '../components/Divider.js';
 import { ThemeManager, ThemeConfig } from '../../core/theme.js';
+import type { ThemeType } from '../../types/index.js';
 import api from '../../core/api.js';
 import logger from '../../utils/logger.js';
 
@@ -28,6 +29,7 @@ interface ThemeOption {
   id: string;
   name: string;
   slug: string;
+  type?: ThemeType | undefined;
 }
 
 interface KnownTheme extends ThemeConfig {
@@ -51,6 +53,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
   const [pendingThemeId, setPendingThemeId] = useState<string | null>(null);
   const [pendingThemeName, setPendingThemeName] = useState<string>('');
   const [pendingThemeSlug, setPendingThemeSlug] = useState<string>('');
+  const [pendingThemeType, setPendingThemeType] = useState<ThemeType | undefined>();
   const [customPathInput, setCustomPathInput] = useState('');
   const [targetPath, setTargetPath] = useState<string>(themePath);
 
@@ -70,15 +73,19 @@ export const LinkView: React.FC<LinkViewProps> = ({
         setKnownThemes(known);
 
         try {
-          const response = await api.getThemes({ page_size: 100 });
-          if (response.results) {
-            const themesList = response.results.map((t: any) => ({
+          const responses = await Promise.all([
+            api.getThemes({ page_size: 100 }),
+            api.getThemes({ page_size: 100, type: 'product_landing_page' }),
+          ]);
+          const themesList = responses
+            .flatMap(response => response.results ?? [])
+            .map((t: any) => ({
               id: t.id,
               name: typeof t.name === 'object' ? t.name.en : t.name,
               slug: t.slug,
+              type: t.type,
             }));
-            setThemes(themesList);
-          }
+          setThemes(themesList);
         } catch {}
 
         setStep('menu');
@@ -147,12 +154,13 @@ export const LinkView: React.FC<LinkViewProps> = ({
     setPendingThemeId(item.value);
     setPendingThemeName(theme?.name || item.value);
     setPendingThemeSlug(theme?.slug || '');
+    setPendingThemeType(theme?.type);
 
     if (knownThemes.length > 0) {
       setStep('pick-target-path');
     } else {
       setTargetPath(themePath || process.cwd());
-      await commitLink(item.value, theme?.name || item.value, theme?.slug || '', themePath || process.cwd());
+      await commitLink(item.value, theme?.name || item.value, theme?.slug || '', themePath || process.cwd(), theme?.type);
     }
   };
 
@@ -164,30 +172,34 @@ export const LinkView: React.FC<LinkViewProps> = ({
     const themeId = themeIdInput.trim();
     setPendingThemeId(themeId);
 
-    const theme = themes.find(t => t.id === themeId);
-    if (theme) {
-      setPendingThemeName(theme.name);
-      setPendingThemeSlug(theme.slug);
-    } else {
+    let theme = themes.find(t => t.id === themeId);
+    if (!theme) {
       try {
         const response = await api.getTheme(themeId);
         if (response) {
-          setPendingThemeName(
-            typeof response.name === 'object' ? response.name.en : response.name
-          );
-          setPendingThemeSlug(response.slug || '');
+          theme = {
+            id: themeId,
+            name:
+              typeof response.name === 'object' ? response.name.en : response.name,
+            slug: response.slug || '',
+            type: response.type,
+          };
         }
       } catch {}
     }
+    setPendingThemeName(theme?.name || themeId);
+    setPendingThemeSlug(theme?.slug || '');
+    setPendingThemeType(theme?.type);
 
     if (knownThemes.length > 0) {
       setStep('pick-target-path');
     } else {
       await commitLink(
         themeId,
-        themes.find(t => t.id === themeId)?.name || themeId,
-        themes.find(t => t.id === themeId)?.slug || '',
-        themePath || process.cwd()
+        theme?.name || themeId,
+        theme?.slug || '',
+        themePath || process.cwd(),
+        theme?.type
       );
     }
   };
@@ -212,7 +224,8 @@ export const LinkView: React.FC<LinkViewProps> = ({
         pendingThemeId,
         pendingThemeName,
         pendingThemeSlug,
-        cwdPath
+        cwdPath,
+        pendingThemeType
       );
       return;
     }
@@ -221,7 +234,8 @@ export const LinkView: React.FC<LinkViewProps> = ({
       pendingThemeId,
       pendingThemeName,
       pendingThemeSlug,
-      item.value
+      item.value,
+      pendingThemeType
     );
   };
 
@@ -251,7 +265,8 @@ export const LinkView: React.FC<LinkViewProps> = ({
       pendingThemeId,
       pendingThemeName,
       pendingThemeSlug,
-      resolved
+      resolved,
+      pendingThemeType
     );
   };
 
@@ -259,7 +274,8 @@ export const LinkView: React.FC<LinkViewProps> = ({
     themeId: string,
     name: string,
     slug: string,
-    path: string
+    path: string,
+    type?: ThemeType
   ) => {
     setLoading(true);
     setError(null);
@@ -272,6 +288,7 @@ export const LinkView: React.FC<LinkViewProps> = ({
         await themeManager.updateConfig({ name });
       }
       await themeManager.updateThemeId(themeId, slug);
+      await themeManager.updateConfig({ type });
 
       logger.success(`✅ Linked ${themeId} -> ${path}`);
 

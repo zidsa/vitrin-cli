@@ -9,6 +9,7 @@ import type {
   ThemesResponse,
   DevStoresResponse,
   ApiResponse,
+  ThemeType,
 } from '../types/index.js';
 import type { ThemeVersionStatus } from './themeStatus.js';
 
@@ -294,6 +295,7 @@ export class ApiService {
     page?: number;
     page_size?: number;
     search?: string;
+    type?: ThemeType | undefined;
   }): Promise<ThemesResponse> {
     try {
       const response = await this.client.get('/v2/themes/', { params });
@@ -368,6 +370,7 @@ export class ApiService {
     name: { en: string; ar?: string };
     description: { en: string; ar?: string };
     slug: string;
+    type?: ThemeType | undefined;
   }): Promise<any> {
     try {
       const response = await this.client.post('/v2/themes/', data);
@@ -780,6 +783,32 @@ export class ApiService {
       });
       return response.data;
     } catch (error) {
+      logger.error('Failed to get preview URL', error as Error);
+      throw error;
+    }
+  }
+
+  async getProductLandingPagePreviewUrl(
+    storeId: string,
+    storeThemeId: string
+  ): Promise<{ url: string }> {
+    try {
+      const response = await this.client.post(
+        `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
+        {},
+        {
+          headers: {
+            'store-id': storeId,
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      if (errorMessage) {
+        logger.error(`Failed to get preview URL: ${errorMessage}`);
+        throw new Error(`Failed to get preview URL: ${errorMessage}`);
+      }
       logger.error('Failed to get preview URL', error as Error);
       throw error;
     }

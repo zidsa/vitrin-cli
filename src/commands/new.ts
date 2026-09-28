@@ -15,7 +15,12 @@ const newCommand = new Command('new')
     'Use an existing local directory instead of cloning the template'
   )
   .option('--no-git', 'Skip git initialization (only when cloning template)')
+  .option(
+    '--landing',
+    'Create a product landing page theme (layout.jinja + templates/landing.jinja)'
+  )
   .action(async (themeName: string, options) => {
+    const type = options.landing ? 'product_landing_page' : undefined;
     try {
       if (options.fromExisting) {
         logger.info(`Registering existing theme: ${themeName}`);
@@ -24,6 +29,7 @@ const newCommand = new Command('new')
         const resolvedPath = await registerExistingTheme({
           themeName,
           existingPath: options.fromExisting,
+          type,
           onProgress: msg => logger.loading(msg),
         });
 
@@ -45,6 +51,7 @@ const newCommand = new Command('new')
         themeName,
         targetDir,
         skipGit: !options.git,
+        type,
         onProgress: msg => logger.loading(msg),
       });
 
@@ -68,6 +75,8 @@ Examples:
   $ vitrin new my-theme --directory ./themes/x   Clone into a specific directory
   $ vitrin new my-theme --no-git                 Clone without git initialization
   $ vitrin new my-theme --from-existing ./src    Register an existing directory
+  $ vitrin new my-page --landing --from-existing ./src
+                                                 Register a product landing page theme
 
 Notes:
   Cloning fetches the official template from:

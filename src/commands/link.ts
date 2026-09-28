@@ -55,10 +55,10 @@ const linkCommand = new Command('link')
         await auth.requireAuth();
         logger.loading('Verifying theme...');
 
-        const themes = await apiService.getThemes({ page_size: 100 });
-        const theme = themes.results?.find((t: any) => t.id === themeId);
-
-        if (!theme) {
+        let theme: any;
+        try {
+          theme = await apiService.getTheme(themeId);
+        } catch {
           logger.error(`❌ Theme with ID "${themeId}" not found`);
           logger.info(
             'Make sure the theme ID is correct and you have access to it'
@@ -69,6 +69,7 @@ const linkCommand = new Command('link')
         const themeName =
           typeof theme.name === 'object' ? theme.name.en : theme.name;
         await themeManager.updateThemeId(themeId, theme.slug);
+        await themeManager.updateConfig({ type: theme.type });
 
         if (currentConfig.id && currentConfig.id !== themeId) {
           logger.success(

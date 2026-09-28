@@ -9,7 +9,7 @@ import {
   validateThemeStructureDetailed as validateThemeStructureDetailedFn,
   type ThemeStructureValidation,
 } from './themeValidation.js';
-import type { BuildOptions } from '../types/index.js';
+import type { BuildOptions, ThemeType } from '../types/index.js';
 
 export type AssetBuildProgress = (line: string) => void;
 
@@ -167,14 +167,18 @@ export class BuildService {
     return { ran: true, installer, buildScript };
   }
 
-  async validateThemeStructure(themePath: string): Promise<boolean> {
-    return validateThemeStructureFn(themePath);
+  async validateThemeStructure(
+    themePath: string,
+    type?: ThemeType
+  ): Promise<boolean> {
+    return validateThemeStructureFn(themePath, type);
   }
 
   async validateThemeStructureDetailed(
-    themePath: string
+    themePath: string,
+    type?: ThemeType
   ): Promise<ThemeStructureValidation> {
-    return validateThemeStructureDetailedFn(themePath);
+    return validateThemeStructureDetailedFn(themePath, type);
   }
 
   async removeDSStore(dirPath: string): Promise<void> {
@@ -225,19 +229,19 @@ export class BuildService {
   }
 
   async getDraftedSettings(
-    themePath: string
+    themePath: string,
+    type?: ThemeType
   ): Promise<{ path: string; settings: any }[]> {
     const resolvedPath = resolve(themePath);
 
-    const settingsFiles: { filePath: string; path: string }[] = [
-      {
-        filePath: join(resolvedPath, 'templates/home.json'),
-        path: 'templates/home.jinja',
-      },
-      { filePath: join(resolvedPath, 'layout.json'), path: 'layout.jinja' },
-      { filePath: join(resolvedPath, 'header.json'), path: 'header.jinja' },
-      { filePath: join(resolvedPath, 'footer.json'), path: 'footer.jinja' },
-    ];
+    const templates =
+      type === 'product_landing_page'
+        ? ['templates/landing', 'layout']
+        : ['templates/home', 'layout', 'header', 'footer'];
+    const settingsFiles = templates.map(name => ({
+      filePath: join(resolvedPath, `${name}.json`),
+      path: `${name}.jinja`,
+    }));
 
     const results: { path: string; settings: any }[] = [];
 

@@ -56,7 +56,10 @@ const previewCommand = new Command('preview')
 
       if (options.validate) {
         logger.loading('Validating theme structure...');
-        const isValid = await buildService.validateThemeStructure(resolvedPath);
+        const isValid = await buildService.validateThemeStructure(
+          resolvedPath,
+          themeConfig.type
+        );
         if (!isValid) {
           logger.error('❌ Theme validation failed');
           process.exit(1);
@@ -154,6 +157,7 @@ const previewCommand = new Command('preview')
               ar: options.description || 'Preview theme',
             },
             slug: themeSlug,
+            type: themeConfig.type,
           };
           const theme = await apiService.createTheme(createData);
           themeId = theme.id;
@@ -221,8 +225,10 @@ const previewCommand = new Command('preview')
           versionData.theme_version.id
         );
 
-        const draftedSettings =
-          await buildService.getDraftedSettings(themePath);
+        const draftedSettings = await buildService.getDraftedSettings(
+          themePath,
+          themeConfig.type
+        );
         if (draftedSettings) {
           await apiService.setDraftSettings(
             storeId,
@@ -238,10 +244,13 @@ const previewCommand = new Command('preview')
         logger.info(`Installation: ${installation.id}`);
 
         try {
-          const previewResponse = await apiService.getPreviewUrl(
-            storeId,
-            installation.id || null
-          );
+          const previewResponse =
+            themeConfig.type === 'product_landing_page'
+              ? await apiService.getProductLandingPagePreviewUrl(
+                  storeId,
+                  installation.id
+                )
+              : await apiService.getPreviewUrl(storeId, installation.id || null);
           const previewUrl = previewResponse.url.startsWith('http')
             ? previewResponse.url
             : `https://${previewResponse.url}`;
@@ -255,9 +264,11 @@ const previewCommand = new Command('preview')
           logger.debug('Could not get preview URL or open browser');
         }
 
-        logger.info(
-          `\n💡 To activate: vitrin activate ${storeId} ${installation.id}`
-        );
+        if (themeConfig.type !== 'product_landing_page') {
+          logger.info(
+            `\n💡 To activate: vitrin activate ${storeId} ${installation.id}`
+          );
+        }
       } catch (error: any) {
         if (error.response?.data?.theme_id) {
           logger.info('\n✅ Theme uploaded successfully!');
