@@ -8,7 +8,7 @@ import apiService from '../core/api.js';
 import auth from '../core/auth.js';
 import buildService from '../utils/build.js';
 import {
-  appendValidatePath,
+  toValidateUrl,
   findDiscouragedTemplates,
   removeDiscouragedTemplates,
 } from '../utils/themeValidation.js';
@@ -257,7 +257,7 @@ const previewCommand = new Command('preview')
           const previewUrl = previewResponse.url.startsWith('http')
             ? previewResponse.url
             : `https://${previewResponse.url}`;
-          const validateUrl = appendValidatePath(previewUrl);
+          const validateUrl = toValidateUrl(previewUrl);
           logger.info(`\n🌐 Preview URL: ${previewUrl}`);
           logger.info(`🔍 Theme validation report: ${validateUrl}`);
           logger.info('🌐 Opening preview in browser...');

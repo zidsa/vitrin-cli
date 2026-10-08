@@ -7,7 +7,7 @@ import { ProgressBar } from '../components/ProgressBar.js';
 import apiService from '../../core/api.js';
 import { ThemeManager } from '../../core/theme.js';
 import {
-  appendValidatePath,
+  toValidateUrl,
   findDiscouragedTemplates,
   removeDiscouragedTemplates,
 } from '../../utils/themeValidation.js';
@@ -340,7 +340,7 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
             );
       const fullUrl = previewResponse.url.startsWith('http') ? previewResponse.url : `https://${previewResponse.url}`;
       setPreviewUrl(fullUrl);
-      setValidateUrl(appendValidatePath(fullUrl));
+      setValidateUrl(toValidateUrl(fullUrl));
 
       const themeManager = new ThemeManager(themePath);
       const config = await themeManager.getConfig();

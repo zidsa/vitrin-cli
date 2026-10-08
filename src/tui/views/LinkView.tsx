@@ -73,18 +73,12 @@ export const LinkView: React.FC<LinkViewProps> = ({
         setKnownThemes(known);
 
         try {
-          const responses = await Promise.all([
-            api.getThemes({ page_size: 100 }),
-            api.getThemes({ page_size: 100, type: 'product_landing_page' }),
-          ]);
-          const themesList = responses
-            .flatMap(response => response.results ?? [])
-            .map((t: any) => ({
-              id: t.id,
-              name: typeof t.name === 'object' ? t.name.en : t.name,
-              slug: t.slug,
-              type: t.type,
-            }));
+          const themesList = (await api.getAllThemes()).map((t: any) => ({
+            id: t.id,
+            name: typeof t.name === 'object' ? t.name.en : t.name,
+            slug: t.slug,
+            type: t.type,
+          }));
           setThemes(themesList);
         } catch {}
 

@@ -109,14 +109,9 @@ export async function removeDiscouragedTemplates(
   }
 }
 
-export function appendValidatePath(url: string): string {
-  try {
-    const parsed = new URL(url);
-    parsed.pathname = '/validate';
-    return parsed.toString();
-  } catch {
-    const [base = url, query = ''] = url.split('?');
-    const cleaned = base.replace(/\/+$/, '');
-    return query ? `${cleaned}/validate?${query}` : `${cleaned}/validate`;
-  }
+/** The preview URL's `/validate` page, keeping its query (theme/profile). */
+export function toValidateUrl(url: string): string {
+  const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+  parsed.pathname = '/validate';
+  return parsed.toString();
 }

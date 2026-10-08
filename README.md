@@ -412,6 +412,9 @@ store's first published product.
 
 There is no starter template yet, so `--landing` requires `--from-existing`.
 
+Upload the theme's default design separately with `vitrin presets create ./preset.json`
+(`push` does not upload it). Without a preset, new landing pages start with no sections.
+
 ### List Resources
 
 ```bash

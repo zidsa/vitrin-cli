@@ -10,6 +10,7 @@ import type {
   DevStoresResponse,
   ApiResponse,
   ThemeType,
+  Theme,
 } from '../types/index.js';
 import type { ThemeVersionStatus } from './themeStatus.js';
 
@@ -304,6 +305,15 @@ export class ApiService {
       logger.error('Failed to fetch themes', error as Error);
       throw error;
     }
+  }
+
+  /** Themes of every type; the API lists one type per request (default "theme"). */
+  async getAllThemes(): Promise<Theme[]> {
+    const responses = await Promise.all([
+      this.getThemes({ page_size: 100 }),
+      this.getThemes({ page_size: 100, type: 'product_landing_page' }),
+    ]);
+    return responses.flatMap(response => response.results ?? []);
   }
 
   async getTheme(themeId: string): Promise<any> {
@@ -746,15 +756,16 @@ export class ApiService {
   }
 
   async getStoreTheme(storeId: string, installationId: string): Promise<any> {
-    const response = await this.client.get(
-      `/v2/stores/themes/${installationId}/`,
-      {
-        headers: {
-          'store-id': storeId,
-        },
-      }
-    );
-    return response.data;
+    try {
+      const response = await this.client.get(
+        `/v2/stores/themes/${installationId}/`,
+        { headers: { 'store-id': storeId } }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      throw errorMessage ? new Error(errorMessage) : error;
+    }
   }
 
   async activateTheme(storeId: string, installationId: string): Promise<any> {
@@ -804,16 +815,17 @@ export class ApiService {
     storeId: string,
     storeThemeId: string
   ): Promise<{ url: string }> {
-    const response = await this.client.post(
-      `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
-      {},
-      {
-        headers: {
-          'store-id': storeId,
-        },
-      }
-    );
-    return response.data;
+    try {
+      const response = await this.client.post(
+        `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
+        {},
+        { headers: { 'store-id': storeId } }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      throw errorMessage ? new Error(errorMessage) : error;
+    }
   }
 
   setBaseURL(baseURL: string): void {
