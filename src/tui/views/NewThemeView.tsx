@@ -9,8 +9,10 @@ import {
   registerExistingTheme,
   TEMPLATE_REPO_URL,
 } from '../../utils/createTheme.js';
+import type { ThemeType } from '../../types/index.js';
 
 interface NewThemeViewProps {
+  themeType?: ThemeType | undefined;
   onComplete: (themeName?: string, themePath?: string) => void;
   onBack: () => void;
 }
@@ -26,9 +28,11 @@ type Step =
 type Mode = 'clone' | 'existing';
 
 export const NewThemeView: React.FC<NewThemeViewProps> = ({
+  themeType,
   onComplete,
   onBack,
 }) => {
+  const isLandingPage = themeType === 'product_landing_page';
   const [step, setStep] = useState<Step>('mode');
   const [mode, setMode] = useState<Mode>('clone');
   const [themeName, setThemeName] = useState('');
@@ -95,6 +99,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
         themeName,
         targetDir: themeName,
         skipGit: false,
+        type: themeType,
         onProgress: msg => setProgressMsg(msg),
       });
 
@@ -134,6 +139,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
       const resolvedPath = await registerExistingTheme({
         themeName,
         existingPath: existingPath.trim(),
+        type: themeType,
         onProgress: msg => setProgressMsg(msg),
       });
 
@@ -161,7 +167,9 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
       >
         <Box marginBottom={1}>
           <Text color="cyan" bold>
-            ✨ Create New Theme
+            {isLandingPage
+              ? '🛬 Create Product Landing Page Theme'
+              : '✨ Create New Theme'}
           </Text>
         </Box>
 
@@ -171,10 +179,14 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
             <Box marginTop={1}>
               <SelectInput
                 items={[
-                  {
-                    label: '📥 Clone the default Growth Theme template',
-                    value: 'clone',
-                  },
+                  ...(isLandingPage
+                    ? []
+                    : [
+                        {
+                          label: '📥 Clone the default Growth Theme template',
+                          value: 'clone',
+                        },
+                      ]),
                   {
                     label: '📂 Use an existing local directory',
                     value: 'existing',
@@ -190,13 +202,17 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
               />
             </Box>
             <Box marginTop={1} flexDirection="column">
-              <Text dimColor>
-                The clone option fetches the official template from:
-              </Text>
-              <Text color="cyan" dimColor>
-                {'  '}
-                {TEMPLATE_REPO_URL}
-              </Text>
+              {!isLandingPage && (
+                <>
+                  <Text dimColor>
+                    The clone option fetches the official template from:
+                  </Text>
+                  <Text color="cyan" dimColor>
+                    {'  '}
+                    {TEMPLATE_REPO_URL}
+                  </Text>
+                </>
+              )}
               <Text dimColor>
                 The existing-directory option registers a folder you already
                 have so vitrin can build/push it without copying files.

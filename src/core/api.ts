@@ -9,6 +9,8 @@ import type {
   ThemesResponse,
   DevStoresResponse,
   ApiResponse,
+  ThemeType,
+  Theme,
 } from '../types/index.js';
 import type { ThemeVersionStatus } from './themeStatus.js';
 
@@ -294,6 +296,7 @@ export class ApiService {
     page?: number;
     page_size?: number;
     search?: string;
+    type?: ThemeType | undefined;
   }): Promise<ThemesResponse> {
     try {
       const response = await this.client.get('/v2/themes/', { params });
@@ -302,6 +305,15 @@ export class ApiService {
       logger.error('Failed to fetch themes', error as Error);
       throw error;
     }
+  }
+
+  /** Themes of every type; the API lists one type per request (default "theme"). */
+  async getAllThemes(): Promise<Theme[]> {
+    const responses = await Promise.all([
+      this.getThemes({ page_size: 100 }),
+      this.getThemes({ page_size: 100, type: 'product_landing_page' }),
+    ]);
+    return responses.flatMap(response => response.results ?? []);
   }
 
   async getTheme(themeId: string): Promise<any> {
@@ -368,6 +380,7 @@ export class ApiService {
     name: { en: string; ar?: string };
     description: { en: string; ar?: string };
     slug: string;
+    type?: ThemeType | undefined;
   }): Promise<any> {
     try {
       const response = await this.client.post('/v2/themes/', data);
@@ -742,6 +755,19 @@ export class ApiService {
     }
   }
 
+  async getStoreTheme(storeId: string, installationId: string): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/v2/stores/themes/${installationId}/`,
+        { headers: { 'store-id': storeId } }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      throw errorMessage ? new Error(errorMessage) : error;
+    }
+  }
+
   async activateTheme(storeId: string, installationId: string): Promise<any> {
     try {
       const response = await this.client.post(
@@ -782,6 +808,23 @@ export class ApiService {
     } catch (error) {
       logger.error('Failed to get preview URL', error as Error);
       throw error;
+    }
+  }
+
+  async getProductLandingPagePreviewUrl(
+    storeId: string,
+    storeThemeId: string
+  ): Promise<{ url: string }> {
+    try {
+      const response = await this.client.post(
+        `/v2/stores/themes/${storeThemeId}/product-landing-page-preview/`,
+        {},
+        { headers: { 'store-id': storeId } }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = this.extractErrorMessage(error.response?.data);
+      throw errorMessage ? new Error(errorMessage) : error;
     }
   }
 

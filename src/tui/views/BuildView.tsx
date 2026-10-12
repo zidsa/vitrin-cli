@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import Spinner from 'ink-spinner';
 import { ProgressBar } from '../components/ProgressBar.js';
 import buildService from '../../utils/build.js';
+import { ThemeManager } from '../../core/theme.js';
 
 interface BuildViewProps {
   themePath: string;
@@ -55,8 +56,11 @@ export const BuildView: React.FC<BuildViewProps> = ({
         const fs = (await import('fs')).promises;
 
         updateStep(0, 'running');
-        const validation =
-          await buildService.validateThemeStructureDetailed(themePath);
+        const { type } = await new ThemeManager(themePath).getConfig();
+        const validation = await buildService.validateThemeStructureDetailed(
+          themePath,
+          type
+        );
         if (!validation.valid) {
           const missingList = validation.missing.join(', ');
           throw new Error(

@@ -10,12 +10,17 @@ const themesCommand = new Command('themes')
     new Command('list')
       .description('List all themes from server')
       .option('-s, --search <term>', 'Search themes by name')
+      .option(
+        '--type <type>',
+        'Filter by theme type: theme (default) or product_landing_page'
+      )
       .action(async options => {
         try {
           await auth.requireAuth();
           logger.loading('Fetching themes from server...');
           const themes = await apiService.getThemes({
             search: options.search,
+            type: options.type,
             page_size: 100,
           });
 

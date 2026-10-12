@@ -18,11 +18,12 @@ interface DashboardProps {
 
 interface MenuItem {
   label: string;
-  value: View | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit';
+  value: View | 'landing-new' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit';
   key: string;
   requiresAuth?: boolean;
   requiresTheme?: boolean;
   requiresLinked?: boolean;
+  hiddenForLandingPage?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -102,6 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [currentTheme, currentThemePath]);
 
   const isLinked = !!themeConfig?.id;
+  const isLandingPage = themeConfig?.type === 'product_landing_page';
   const linkedThemeName =
     typeof themeConfig?.name === 'object'
       ? themeConfig.name.en
@@ -109,10 +111,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const menuItems: MenuItem[] = [
     { label: '✨ Create New Theme', value: 'new', key: '1' },
+    { label: '🛬 Create Product Landing Page Theme', value: 'landing-new', key: 'l' },
     { label: '🚀 Push to Zid', value: 'push', key: '2', requiresTheme: true },
     { label: '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
     { label: '👁️ Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
-    { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true },
+    { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true, hiddenForLandingPage: true },
     {
       label: '🎨 Open Theme Editor',
       value: 'theme-editor' as View,
@@ -120,6 +123,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       requiresAuth: true,
       requiresTheme: true,
       requiresLinked: true,
+      hiddenForLandingPage: true,
     },
     { label: '🔗 Link/Unlink Theme', value: 'link', key: '6' },
     {
@@ -153,6 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (item.requiresTheme && !currentTheme) return false;
     if (item.requiresAuth && !authState) return false;
     if (item.requiresLinked && !isLinked) return false;
+    if (item.hiddenForLandingPage && isLandingPage) return false;
     return true;
   });
 
@@ -163,9 +168,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   });
 
-  const handleSelect = (item: { value: View | 'new' | 'push' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit' }) => {
+  const handleSelect = (item: { value: View | 'new' | 'landing-new' | 'push' | 'activate' | 'link' | 'switch' | 'translations' | 'auth' | 'report-issues' | 'theme-editor' | 'exit' }) => {
     if (item.value === 'exit') {
       process.exit(0);
+    } else if (item.value === 'new' || item.value === 'landing-new') {
+      onNavigate('new', {
+        newThemeType: item.value === 'landing-new' ? 'product_landing_page' : undefined,
+      });
     } else if (item.value === 'versions' && themeConfig?.id) {
       onNavigate('versions' as View, {
         versionsTheme: { id: themeConfig.id, name: linkedThemeName || themeConfig.id },
@@ -190,6 +199,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </Text>
             {currentThemePath && (
               <Text dimColor>   Path: {currentThemePath}</Text>
+            )}
+            {isLandingPage && (
+              <Text>
+                <Text color="cyan">🛬 Type:</Text> Product landing page
+              </Text>
             )}
             {themeConfig?.id ? (
               <>

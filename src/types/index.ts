@@ -5,9 +5,12 @@ export interface Partner {
   access_token?: string;
 }
 
+export type ThemeType = 'theme' | 'product_landing_page';
+
 export interface Theme {
   id: string;
   slug: string;
+  type?: ThemeType;
   partner: string;
   name: { en: string; ar?: string };
   description: { en: string; ar?: string };

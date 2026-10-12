@@ -266,10 +266,14 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
     try {
       setState('pushing');
       const themePath = process.cwd();
+      const themeManager = new ThemeManager(themePath);
+      const themeConfig = await themeManager.getConfig();
 
       addLog('🔎 Validating theme directory...');
-      const validation =
-        await buildService.validateThemeStructureDetailed(themePath);
+      const validation = await buildService.validateThemeStructureDetailed(
+        themePath,
+        themeConfig.type
+      );
       if (!validation.valid) {
         throw new Error(
           `Missing ${validation.missing.join(', ')} in ${validation.resolvedPath}. ` +
@@ -287,9 +291,6 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       } else {
         addLog(`   ✓ Built with ${assetResult.installer}`);
       }
-
-      const themeManager = new ThemeManager(themePath);
-      const themeConfig = await themeManager.getConfig();
 
       addLog('📖 Reading theme configuration...');
       let themeJson: any;
@@ -362,10 +363,13 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       if (isNewTheme) {
         addLog('✨ Creating new theme on Zid...');
         theme = await api.createTheme({
-          name: themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
+          name: themeConfig.name
+            ? { en: themeConfig.name, ar: themeConfig.name }
+            : themeJson.name || { en: 'New Theme', ar: 'موضوع جديد' },
           description:
             themeJson.description || { en: 'A new theme', ar: 'موضوع جديد' },
           slug: themeJson.slug || `theme-${Date.now()}`,
+          type: themeConfig.type,
         });
         await themeManager.updateThemeId(theme.id, theme.slug);
         addLog(`✅ Created theme: ${theme.name.en}`);

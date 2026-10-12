@@ -391,6 +391,30 @@ Installation: 11111
 💡 To activate: vitrin activate 123 11111
 ```
 
+### Product Landing Page Themes
+
+```bash
+vitrin new <theme-name> --landing --from-existing <path>
+vitrin push
+vitrin preview [store-id]
+vitrin themes list --type product_landing_page
+```
+
+A product landing page theme renders a single product at `/l/<slug>` and needs
+only `layout.jinja` and `templates/landing.jinja` (plus `sections/`). It is
+never activated as the store theme; merchants create pages from it instead.
+
+`--landing` records the type in `.vitrin/theme.json`. After that `push` and
+`preview` read it: validation checks the landing file set, draft settings come
+from `templates/landing.json` and `layout.json`, `--activate` is ignored, and
+`preview` opens a temporary page at `/l/preview-<theme id without dashes>` bound to the dev
+store's first published product.
+
+There is no starter template yet, so `--landing` requires `--from-existing`.
+
+Upload the theme's default design separately with `vitrin presets create ./preset.json`
+(`push` does not upload it). Without a preset, new landing pages start with no sections.
+
 ### List Resources
 
 ```bash

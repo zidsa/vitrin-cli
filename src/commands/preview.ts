@@ -8,7 +8,7 @@ import apiService from '../core/api.js';
 import auth from '../core/auth.js';
 import buildService from '../utils/build.js';
 import {
-  appendValidatePath,
+  toValidateUrl,
   findDiscouragedTemplates,
   removeDiscouragedTemplates,
 } from '../utils/themeValidation.js';
@@ -35,6 +35,9 @@ const previewCommand = new Command('preview')
 
       const themeManager = new ThemeManager(themePath);
       const themeConfig = await themeManager.getConfig();
+      const themeType = options.themeId
+        ? (await apiService.getTheme(options.themeId)).type
+        : themeConfig.type;
 
       if (!storeId && themeConfig?.defaultStore) {
         storeId = themeConfig.defaultStore;
@@ -56,7 +59,10 @@ const previewCommand = new Command('preview')
 
       if (options.validate) {
         logger.loading('Validating theme structure...');
-        const isValid = await buildService.validateThemeStructure(resolvedPath);
+        const isValid = await buildService.validateThemeStructure(
+          resolvedPath,
+          themeType
+        );
         if (!isValid) {
           logger.error('❌ Theme validation failed');
           process.exit(1);
@@ -154,6 +160,7 @@ const previewCommand = new Command('preview')
               ar: options.description || 'Preview theme',
             },
             slug: themeSlug,
+            type: themeType,
           };
           const theme = await apiService.createTheme(createData);
           themeId = theme.id;
@@ -221,8 +228,10 @@ const previewCommand = new Command('preview')
           versionData.theme_version.id
         );
 
-        const draftedSettings =
-          await buildService.getDraftedSettings(themePath);
+        const draftedSettings = await buildService.getDraftedSettings(
+          themePath,
+          themeType
+        );
         if (draftedSettings) {
           await apiService.setDraftSettings(
             storeId,
@@ -238,26 +247,35 @@ const previewCommand = new Command('preview')
         logger.info(`Installation: ${installation.id}`);
 
         try {
-          const previewResponse = await apiService.getPreviewUrl(
-            storeId,
-            installation.id || null
-          );
+          const previewResponse =
+            themeType === 'product_landing_page'
+              ? await apiService.getProductLandingPagePreviewUrl(
+                  storeId,
+                  installation.id
+                )
+              : await apiService.getPreviewUrl(storeId, installation.id || null);
           const previewUrl = previewResponse.url.startsWith('http')
             ? previewResponse.url
             : `https://${previewResponse.url}`;
-          const validateUrl = appendValidatePath(previewUrl);
+          const validateUrl = toValidateUrl(previewUrl);
           logger.info(`\n🌐 Preview URL: ${previewUrl}`);
           logger.info(`🔍 Theme validation report: ${validateUrl}`);
           logger.info('🌐 Opening preview in browser...');
 
           await open(previewUrl);
         } catch (previewErr) {
+          if (themeType === 'product_landing_page') {
+            logger.error((previewErr as Error).message);
+            process.exit(1);
+          }
           logger.debug('Could not get preview URL or open browser');
         }
 
-        logger.info(
-          `\n💡 To activate: vitrin activate ${storeId} ${installation.id}`
-        );
+        if (themeType !== 'product_landing_page') {
+          logger.info(
+            `\n💡 To activate: vitrin activate ${storeId} ${installation.id}`
+          );
+        }
       } catch (error: any) {
         if (error.response?.data?.theme_id) {
           logger.info('\n✅ Theme uploaded successfully!');

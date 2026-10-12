@@ -15,6 +15,16 @@ const activateCommand = new Command('activate')
         `Activating theme ${installationId} on store ${storeId}...`
       );
       try {
+        const installation = await apiService.getStoreTheme(
+          storeId,
+          installationId
+        );
+        if (installation.theme?.type === 'product_landing_page') {
+          logger.error(
+            'Product landing page themes are never activated; merchants create pages from them instead'
+          );
+          process.exit(1);
+        }
         await apiService.activateTheme(storeId, installationId);
         logger.success('✅ Theme activated successfully!');
         logger.info('Your theme is now live on the store.');

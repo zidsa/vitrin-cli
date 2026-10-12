@@ -5,6 +5,7 @@ import logger from '../utils/logger.js';
 import apiService from '../core/api.js';
 import auth from '../core/auth.js';
 import buildService from '../utils/build.js';
+import { ThemeManager } from '../core/theme.js';
 import type { ThemeUploadResponse } from '../types/index.js';
 
 const updateCommand = new Command('update')
@@ -41,7 +42,11 @@ const updateCommand = new Command('update')
 
       if (options.validate) {
         logger.loading('Validating theme structure...');
-        const isValid = await buildService.validateThemeStructure(resolvedPath);
+        const { type } = await new ThemeManager(resolvedPath).getConfig();
+        const isValid = await buildService.validateThemeStructure(
+          resolvedPath,
+          type
+        );
         if (!isValid) {
           logger.error('Theme validation failed');
           process.exit(1);

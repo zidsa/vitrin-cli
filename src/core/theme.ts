@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import logger from '../utils/logger.js';
+import type { ThemeType } from '../types/index.js';
 
 async function fileExists(path: string): Promise<boolean> {
   try {
@@ -15,6 +16,7 @@ async function fileExists(path: string): Promise<boolean> {
 export interface ThemeConfig {
   id?: string;
   slug?: string;
+  type?: ThemeType | undefined;
   name?: string;
   version?: string;
   path?: string;

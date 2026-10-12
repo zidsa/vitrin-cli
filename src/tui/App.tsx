@@ -20,6 +20,7 @@ import { ThemeEditorView } from './views/ThemeEditorView.js';
 import auth from '../core/auth.js';
 import { ThemeManager } from '../core/theme.js';
 import { getVersion } from '../utils/getVersion.js';
+import type { ThemeType } from '../types/index.js';
 
 export type View =
   | 'splash'
@@ -47,6 +48,7 @@ interface AppState {
   currentThemePath: string;
   selectedStore?: any;
   versionsTheme?: { id: string; name: string } | undefined;
+  newThemeType?: ThemeType | undefined;
 }
 
 export const App: React.FC = () => {
@@ -282,6 +284,7 @@ export const App: React.FC = () => {
       case 'new':
         return (
           <NewThemeView
+            themeType={state.newThemeType}
             onComplete={(themeName, themePath) => {
               if (themeName && themePath) {
                 setState(prev => ({
