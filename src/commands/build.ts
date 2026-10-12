@@ -6,36 +6,37 @@ import { ThemeManager } from '../core/theme.js';
 import type { BuildOptions } from '../types/index.js';
 
 const buildCommand = new Command('build')
-  .description('Build a theme package')
-  .argument('[path]', 'Path to theme directory', '.')
+  .description('Build a theme or product landing page package')
+  .argument('[path]', 'Path to theme or product landing page directory', '.')
   .option('-n, --name <name>', 'Name for the build output')
   .option('-o, --output <path>', 'Output directory for the build')
   .option('-c, --compression <level>', 'Compression level (0-9)', '9')
   .option('-e, --exclude <patterns...>', 'Exclude patterns')
-  .option('--validate', 'Validate theme structure before building')
+  .option('--validate', 'Validate theme or product landing page structure before building')
   .action(async (themePath: string, options) => {
     try {
       const resolvedPath = resolve(themePath);
       const buildName = options.name || basename(resolvedPath);
+      const { type } = await new ThemeManager(resolvedPath).getConfig();
+      const projectLabel = type === 'product_landing_page' ? 'Product landing page' : 'Theme';
 
-      logger.info(`Building theme: ${buildName}`);
+      logger.info(`Building ${projectLabel.toLowerCase()}: ${buildName}`);
       logger.info(`Source path: ${resolvedPath}`);
 
       if (options.validate) {
-        logger.loading('Validating theme structure...');
-        const { type } = await new ThemeManager(resolvedPath).getConfig();
+        logger.loading(`Validating ${projectLabel.toLowerCase()} structure...`);
         const isValid = await buildService.validateThemeStructure(
           resolvedPath,
           type
         );
         if (!isValid) {
-          logger.error('Theme validation failed');
+          logger.error(`${projectLabel} validation failed`);
           process.exit(1);
         }
-        logger.success('Theme structure is valid');
+        logger.success(`${projectLabel} structure is valid`);
       }
 
-      logger.loading('Compiling theme assets...');
+      logger.loading(`Compiling ${projectLabel.toLowerCase()} assets...`);
       const assetResult = await buildService.runAssetBuild(
         resolvedPath,
         line => logger.info(`  ${line}`)
@@ -63,7 +64,7 @@ const buildCommand = new Command('build')
         resolvedPath,
         buildOptions
       );
-      logger.success(`Build completed: ${outputPath}`);
+      logger.success(`${projectLabel} build completed: ${outputPath}`);
     } catch (error) {
       logger.error('Build failed:', error as Error);
       process.exit(1);
@@ -76,6 +77,7 @@ buildCommand.addHelpText(
 Examples:
   $ vitrin build                          Build current directory
   $ vitrin build ./my-theme              Build specific theme
+  $ vitrin build ./my-landing --validate Build and validate a product landing page
   $ vitrin build --name my-theme         Build with custom name
   $ vitrin build --validate              Validate before building
   $ vitrin build --exclude "*.log" "tmp/*"  Exclude specific patterns

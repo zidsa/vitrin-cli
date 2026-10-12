@@ -51,7 +51,7 @@ export class BuildService {
       });
 
       output.on('close', () => {
-        logger.success(`Theme built successfully: ${outputPath}`);
+        logger.success(`Package built successfully: ${outputPath}`);
         logger.info(
           `Archive size: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`
         );

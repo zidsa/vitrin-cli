@@ -32,7 +32,7 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
         const known = await ThemeManager.listGlobalThemes();
         setThemes(known);
       } catch (err: any) {
-        setError(err.message || 'Failed to load known themes');
+        setError(err.message || 'Failed to load registered projects');
       } finally {
         setLoading(false);
       }
@@ -74,12 +74,12 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
     return (
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text color="cyan" bold>
-          🔀 Switch Theme
+          🔀 Select Project
         </Text>
         <Divider />
         <Box marginTop={1}>
           <Text color="gray">
-            <Spinner type="dots" /> Loading registered themes...
+            <Spinner type="dots" /> Loading registered projects...
           </Text>
         </Box>
       </Box>
@@ -90,7 +90,7 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
     return (
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text color="cyan" bold>
-          🔀 Switch Theme
+          🔀 Select Project
         </Text>
         <Divider />
         <Box marginTop={1}>
@@ -107,13 +107,12 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
     return (
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text color="cyan" bold>
-          🔀 Switch Theme
+          🔀 Select Project
         </Text>
         <Divider />
         <Box marginTop={1} flexDirection="column">
           <Text color="yellow">
-            No registered themes yet. Create one with "Create New Theme" to
-            populate the registry.
+            No registered projects yet. Create a theme or register a Product Landing Page.
           </Text>
           <Text dimColor>Stored at ~/.vitrin/themes.json</Text>
         </Box>
@@ -130,9 +129,10 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
         ? (theme.name as any).en
         : theme.name || basename(theme.path);
     const linked = theme.id ? '🔗' : '·';
+    const type = theme.type === 'product_landing_page' ? 'Product Landing Page' : 'Theme';
     const current = theme.path === currentThemePath ? ' (current)' : '';
     return {
-      label: `${linked} ${name} — ${theme.path}${current}`,
+      label: `${linked} ${name} [${type}] — ${theme.path}${current}`,
       value: theme.path,
     };
   });
@@ -141,12 +141,12 @@ export const SwitchThemeView: React.FC<SwitchThemeViewProps> = ({
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
       <Text color="cyan" bold>
-        🔀 Switch Theme
+        🔀 Select Project
       </Text>
       <Divider />
       <Box marginTop={1} flexDirection="column">
         <Text>
-          Pick a registered theme. Choosing one cd's into it for this session.
+          Select a theme or Product Landing Page to work on.
         </Text>
         <Text dimColor>
           🔗 = linked to a Zid theme · · = local only (not pushed yet)

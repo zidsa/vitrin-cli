@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-09-24
 
 ### Added
-- `vitrin new --landing --from-existing <path>` registers a product landing page theme
+- `vitrin new --landing --from-existing <path>` registers a product landing page
   (`layout.jinja` + `templates/landing.jinja`, served at `/l/<slug>`) and
   records `type` in `.vitrin/theme.json`; `link` records it from the server.
 - `push` and `preview` read the type: landing file validation, draft settings
@@ -16,15 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `POST /v2/stores/themes/{id}/product-landing-page-preview/`, which opens a
   temporary page bound to the dev store's first published product.
 - `vitrin themes list --type product_landing_page`.
-- TUI dashboard: **Create Product Landing Page Theme** (`l`).
+- TUI dashboard: **Register Product Landing Page** (`l`) for existing directories.
 
 ### Changed
+- Build labels and messages distinguish product landing pages from themes; both use `vitrin build`.
+- **Select Project** shows whether each registered project is a Theme or Product Landing Page.
 - `push --activate`, the TUI *Activate Theme* / *Open Theme Editor* entries and
-  the post-preview activate hint are skipped for product landing page themes.
+  the post-preview activate hint are skipped for product landing pages.
 - `vitrin link <id>` fetches the theme by id instead of scanning the first
   100 themes, so themes of any type can be linked.
 
 ### Fixed
+- Jest configuration loads in the ES-module package.
+- Dashboard **Last Build** detects timestamped ZIPs in the selected project directory.
 - `push --store <id>` no longer fails with "Store with ID … not found".
 - `push` creates the theme under the name from `vitrin new` / `link` instead
   of the `package.json` name or "Theme".

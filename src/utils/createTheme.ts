@@ -48,7 +48,7 @@ export async function createThemeFromTemplate(
   const log = onProgress || ((msg: string) => logger.info(msg));
   if (type === 'product_landing_page') {
     throw new Error(
-      'There is no starter template for product landing page themes yet. ' +
+      'There is no starter template for product landing pages yet. ' +
         'Use --from-existing <path> to register a directory you already have.'
     );
   }
@@ -218,7 +218,7 @@ export async function registerExistingTheme(
       `⚠️  ${basename(resolvedPath)} does not contain layout.jinja, theme.json, or package.json — registering anyway.`
     );
   } else {
-    log(`Found theme files in ${resolvedPath}`);
+    log(`Found project files in ${resolvedPath}`);
   }
 
   const themeManager = new ThemeManager(resolvedPath);
@@ -226,7 +226,7 @@ export async function registerExistingTheme(
 
   if (type && existing.id && existing.type !== type) {
     throw new Error(
-      `${basename(resolvedPath)} is linked to theme ${existing.id}, which is not a product landing page theme. Run "vitrin link" in it to unlink first.`
+      `${basename(resolvedPath)} is linked to theme ${existing.id}, which is not a product landing page. Run "vitrin link" in it to unlink first.`
     );
   }
 
@@ -237,6 +237,6 @@ export async function registerExistingTheme(
     createdAt: existing.createdAt || new Date().toISOString(),
   });
 
-  log(`Registered theme at ${resolvedPath}`);
+  log(`Registered ${(type || existing.type) === 'product_landing_page' ? 'product landing page' : 'theme'} at ${resolvedPath}`);
   return resolvedPath;
 }

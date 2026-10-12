@@ -382,7 +382,7 @@ async function pushTheme(options: PushOptions): Promise<void> {
 
       if (options.activate && themeConfig.type === 'product_landing_page') {
         spinner.warn(
-          'Product landing page themes are never activated; merchants create pages from them instead'
+          'Product landing pages are never activated; merchants create pages from them instead'
         );
       } else if (options.activate) {
         spinner.start('Activating theme...');

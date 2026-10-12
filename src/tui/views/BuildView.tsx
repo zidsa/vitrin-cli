@@ -24,12 +24,13 @@ export const BuildView: React.FC<BuildViewProps> = ({
   onComplete,
   onBack,
 }) => {
+  const [projectLabel, setProjectLabel] = useState('Project');
   const [steps, setSteps] = useState<BuildStep[]>([
-    { name: 'Validating theme structure', status: 'pending' },
-    { name: 'Compiling theme assets (npm/pnpm/yarn run build)', status: 'pending' },
+    { name: 'Validating structure', status: 'pending' },
+    { name: 'Compiling assets (npm/pnpm/yarn run build)', status: 'pending' },
     { name: 'Cleaning system files', status: 'pending' },
-    { name: 'Counting theme files', status: 'pending' },
-    { name: 'Creating theme.zip archive', status: 'pending' },
+    { name: 'Counting files', status: 'pending' },
+    { name: 'Creating ZIP archive', status: 'pending' },
     { name: 'Verifying build output', status: 'pending' },
   ]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -46,7 +47,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
 
   useEffect(() => {
     if (!themePath || !themeName) {
-      setError('No theme selected');
+      setError('No project selected');
       return;
     }
 
@@ -57,6 +58,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
 
         updateStep(0, 'running');
         const { type } = await new ThemeManager(themePath).getConfig();
+        setProjectLabel(type === 'product_landing_page' ? 'Product Landing Page' : 'Theme');
         const validation = await buildService.validateThemeStructureDetailed(
           themePath,
           type
@@ -65,7 +67,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
           const missingList = validation.missing.join(', ');
           throw new Error(
             `Missing ${missingList} in ${validation.resolvedPath}. ` +
-              `If your theme files live somewhere else, use 'Switch Theme' ` +
+              `If your files live somewhere else, use 'Select Project' ` +
               `to pick the correct directory.`
           );
         }
@@ -104,6 +106,7 @@ export const BuildView: React.FC<BuildViewProps> = ({
 
         updateStep(4, 'running');
         const outputPath = await buildService.zipTheme(themeName, themePath, {
+          output: themePath,
           compression: 9,
           useTemp: false,
         });
@@ -164,12 +167,12 @@ export const BuildView: React.FC<BuildViewProps> = ({
       <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
           <Text color="cyan" bold>
-            Building Theme
+            Building {projectLabel}
           </Text>
         </Box>
 
         <Box marginBottom={1}>
-          <Text>📦 {themeName || 'Unknown Theme'}</Text>
+          <Text>📦 {themeName || 'Unknown Project'}</Text>
         </Box>
 
         <Box flexDirection="column" marginY={1}>

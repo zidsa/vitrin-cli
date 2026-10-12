@@ -297,22 +297,24 @@ The registry is updated automatically by `vitrin new`, `vitrin link`,
 `vitrin push`, and any TUI flow that touches theme state. Stale entries
 (directories that no longer exist on disk) are pruned on next read.
 
-In the TUI, **Switch Theme** lists registered themes with `🔗` for ones
-linked to a Zid theme and `·` for ones that are local-only. Choosing one
+In the TUI, **Select Project** lists registered themes and Product Landing Pages
+with their type, `🔗` for linked projects, and `·` for local-only projects. Choosing one
 `chdir`s the current session into that directory.
 
-### Building Themes
+### Building Themes and Product Landing Pages
 
 ```bash
 vitrin build [path] [options]
 ```
 
-Builds theme into a distributable `.zip` package.
+Builds a theme or product landing page into a distributable `.zip` package. The project
+type is read from `.vitrin/theme.json`.
 
 **Pipeline:**
-1. Validate theme structure (must contain `layout.jinja`, `header.jinja`,
-   `footer.jinja`, and `templates/home.jinja`). On failure, reports the
-   resolved path and the missing files so you can confirm the build is
+1. Validate structure (with `--validate`, or always in the TUI). Themes require
+   `layout.jinja`, `header.jinja`, `footer.jinja`, and `templates/home.jinja`;
+   product landing pages require `layout.jinja` and `templates/landing.jinja`. On failure,
+   reports the resolved path and missing files so you can confirm the build is
    looking at the right directory.
 2. **Compile theme assets.** If `package.json` declares a `build` script
    (the Growth Theme uses Tailwind + Vite), Vitrin runs `<installer> install`
@@ -329,7 +331,7 @@ Builds theme into a distributable `.zip` package.
 - `-n, --name <name>` - Name for the build output
 - `-o, --output <path>` - Output directory
 - `-c, --compression <level>` - Compression level 0-9 (default: 9)
-- `--validate` - Validate theme structure before building
+- `--validate` - Validate theme or product landing page structure before building
 - `-e, --exclude <patterns...>` - Additional exclude patterns
 
 **Example:**
@@ -391,29 +393,34 @@ Installation: 11111
 💡 To activate: vitrin activate 123 11111
 ```
 
-### Product Landing Page Themes
+### Product Landing Pages
 
 ```bash
 vitrin new <theme-name> --landing --from-existing <path>
+vitrin build <path> --validate
 vitrin push
 vitrin preview [store-id]
 vitrin themes list --type product_landing_page
 ```
 
-A product landing page theme renders a single product at `/l/<slug>` and needs
+A product landing page renders a single product at `/l/<slug>` and needs
 only `layout.jinja` and `templates/landing.jinja` (plus `sections/`). It is
 never activated as the store theme; merchants create pages from it instead.
 
-`--landing` records the type in `.vitrin/theme.json`. After that `push` and
-`preview` read it: validation checks the landing file set, draft settings come
-from `templates/landing.json` and `layout.json`, `--activate` is ignored, and
+In the TUI, **Register Product Landing Page** (`l`) registers an existing folder.
+Use **Select Project** (`s`) to select a registered Product Landing Page, then
+choose **Build Product Landing Page** (`3`). Themes show **Build Theme** instead.
+
+`--landing` records the type in `.vitrin/theme.json`. `build`, `push`, and
+`preview` use it to validate the landing file set. For `push` and `preview`,
+draft settings come from `templates/landing.json` and `layout.json`, `--activate` is ignored, and
 `preview` opens a temporary page at `/l/preview-<theme id without dashes>` bound to the dev
 store's first published product.
 
 There is no starter template yet, so `--landing` requires `--from-existing`.
 
 Upload the theme's default design separately with `vitrin presets create ./preset.json`
-(`push` does not upload it). Without a preset, new landing pages start with no sections.
+(`push` does not upload it). Without a preset, new product landing pages start with no sections.
 
 ### List Resources
 
@@ -651,7 +658,7 @@ vitrin
 - Push themes directly to Zid servers, with pre-push validation
 - Automatic Tailwind/Vite asset compilation before zipping
 - Track push history and versions
-- Switch between registered themes from any cwd via *Switch Theme*
+- Select a registered theme or Product Landing Page from any cwd via *Select Project*
 - Automatic theme detection in current directory
 
 🚀 **Streamlined Deployment**

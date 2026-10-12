@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, Newline } from 'ink';
 import SelectInput from 'ink-select-input';
 import { Divider } from '../components/Divider.js';
-import { existsSync, statSync } from 'fs';
+import { existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { View } from '../App.js';
 import { ThemeManager } from '../../core/theme.js';
@@ -39,10 +39,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [knownThemeCount, setKnownThemeCount] = useState<number>(0);
 
   const checkBuildStatus = () => {
-    if (currentTheme && currentThemePath) {
-        const buildPath = join(process.cwd(), `${currentTheme}.zip`);
-      if (existsSync(buildPath)) {
-        const stats = statSync(buildPath);
+    if (currentTheme && currentThemePath && existsSync(currentThemePath)) {
+      const stats = readdirSync(currentThemePath)
+        .filter(file => file === `${currentTheme}.zip` ||
+          (file.startsWith(`${currentTheme}-`) && /^\d+\.zip$/.test(file.slice(currentTheme.length + 1))))
+        .map(file => statSync(join(currentThemePath, file)))
+        .filter(stat => stat.isFile())
+        .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+      if (stats) {
         const buildTime = new Date(stats.mtime);
         const now = new Date();
         const diff = Math.floor((now.getTime() - buildTime.getTime()) / 1000 / 60);
@@ -111,9 +115,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const menuItems: MenuItem[] = [
     { label: '✨ Create New Theme', value: 'new', key: '1' },
-    { label: '🛬 Create Product Landing Page Theme', value: 'landing-new', key: 'l' },
+    { label: '🛬 Register Product Landing Page', value: 'landing-new', key: 'l' },
     { label: '🚀 Push to Zid', value: 'push', key: '2', requiresTheme: true },
-    { label: '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
+    { label: isLandingPage ? '🔨 Build Product Landing Page' : '🔨 Build Theme', value: 'build', key: '3', requiresTheme: true },
     { label: '👁️ Preview on Store', value: 'preview', key: '4', requiresAuth: true, requiresTheme: true },
     { label: '🎯 Activate Theme', value: 'activate', key: '5', requiresAuth: true, requiresTheme: true, hiddenForLandingPage: true },
     {
@@ -128,8 +132,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { label: '🔗 Link/Unlink Theme', value: 'link', key: '6' },
     {
       label: knownThemeCount > 0
-        ? `🔀 Switch Theme (${knownThemeCount} registered)`
-        : '🔀 Switch Theme',
+        ? `🔀 Select Project (${knownThemeCount} registered)`
+        : '🔀 Select Project',
       value: 'switch' as View,
       key: 's',
     },
@@ -195,7 +199,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {currentTheme ? (
           <>
             <Text>
-              <Text color="cyan">📁 Theme:</Text> {currentTheme}
+              <Text color="cyan">📁 {isLandingPage ? 'Product Landing Page' : 'Theme'}:</Text> {currentTheme}
             </Text>
             {currentThemePath && (
               <Text dimColor>   Path: {currentThemePath}</Text>
@@ -236,14 +240,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <>
             <Text color="yellow">
-              ⚠️  No theme found in current directory.
+              ⚠️  No project selected.
             </Text>
             {knownThemeCount > 0 ? (
               <Text dimColor>
-                {knownThemeCount} registered theme{knownThemeCount === 1 ? '' : 's'} in ~/.vitrin/themes.json — use 'Switch Theme' to open one.
+                {knownThemeCount} registered project{knownThemeCount === 1 ? '' : 's'} — use 'Select Project' to open one.
               </Text>
             ) : (
-              <Text dimColor>Use 'Create New Theme' to get started.</Text>
+              <Text dimColor>Create a theme or register an existing Product Landing Page to get started.</Text>
             )}
           </>
         )}

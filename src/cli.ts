@@ -123,7 +123,7 @@ program.on('--help', () => {
   console.log('  3. vitrin push               Push theme to Zid');
   console.log('');
   console.log('Development:');
-  console.log('  $ vitrin build              Build theme package');
+  console.log('  $ vitrin build              Build theme or product landing page package');
   console.log('  $ vitrin preview            Preview on dev store');
   console.log('');
   console.log('Theme Management:');

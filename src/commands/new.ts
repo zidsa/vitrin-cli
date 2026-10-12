@@ -7,8 +7,8 @@ import {
 } from '../utils/createTheme.js';
 
 const newCommand = new Command('new')
-  .description('Create a new theme (clone template or register existing dir)')
-  .argument('<theme-name>', 'Name of the new theme (lowercase, hyphens)')
+  .description('Create a theme or register an existing project')
+  .argument('<theme-name>', 'Theme or product landing page name (lowercase, hyphens)')
   .option('-d, --directory <dir>', 'Target directory for the new theme')
   .option(
     '-e, --from-existing <path>',
@@ -17,13 +17,14 @@ const newCommand = new Command('new')
   .option('--no-git', 'Skip git initialization (only when cloning template)')
   .option(
     '--landing',
-    'Create a product landing page theme (layout.jinja + templates/landing.jinja)'
+    'Register a product landing page (layout.jinja + templates/landing.jinja)'
   )
   .action(async (themeName: string, options) => {
     const type = options.landing ? 'product_landing_page' : undefined;
+    const projectLabel = options.landing ? 'Product landing page' : 'Theme';
     try {
       if (options.fromExisting) {
-        logger.info(`Registering existing theme: ${themeName}`);
+        logger.info(`Registering existing ${projectLabel.toLowerCase()}: ${themeName}`);
         logger.info(`Source directory: ${options.fromExisting}`);
 
         const resolvedPath = await registerExistingTheme({
@@ -33,10 +34,11 @@ const newCommand = new Command('new')
           onProgress: msg => logger.loading(msg),
         });
 
-        logger.success(`✅ Theme "${themeName}" registered at ${resolvedPath}`);
+        logger.success(`✅ ${projectLabel} "${themeName}" registered at ${resolvedPath}`);
         logger.info(`Saved to local .vitrin/theme.json and global registry.`);
         logger.info(`\nNext steps:`);
         logger.info(`  cd ${resolvedPath}`);
+        logger.info(`  vitrin build --validate`);
         logger.info(`  vitrin push`);
         return;
       }
@@ -62,7 +64,7 @@ const newCommand = new Command('new')
       logger.info(`  cd ${targetDir}`);
       logger.info(`  vitrin push  # Push to Zid`);
     } catch (error) {
-      logger.error('Failed to create theme:', error as Error);
+      logger.error(`Failed to create ${projectLabel.toLowerCase()}:`, error as Error);
       process.exit(1);
     }
   });
@@ -76,7 +78,7 @@ Examples:
   $ vitrin new my-theme --no-git                 Clone without git initialization
   $ vitrin new my-theme --from-existing ./src    Register an existing directory
   $ vitrin new my-page --landing --from-existing ./src
-                                                 Register a product landing page theme
+                                                 Register a product landing page
 
 Notes:
   Cloning fetches the official template from:

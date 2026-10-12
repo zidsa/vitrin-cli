@@ -33,6 +33,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
   onBack,
 }) => {
   const isLandingPage = themeType === 'product_landing_page';
+  const projectLabel = isLandingPage ? 'Product Landing Page' : 'Theme';
   const [step, setStep] = useState<Step>('mode');
   const [mode, setMode] = useState<Mode>('clone');
   const [themeName, setThemeName] = useState('');
@@ -77,9 +78,9 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
   };
 
   const validateName = (name: string): string | null => {
-    if (!name.trim()) return 'Theme name is required';
+    if (!name.trim()) return `${projectLabel} name is required`;
     if (!/^[a-z0-9-]+$/.test(name)) {
-      return 'Theme name must be lowercase with hyphens only';
+      return `${projectLabel} name must be lowercase with hyphens only`;
     }
     return null;
   };
@@ -151,7 +152,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
         onComplete(themeName, resolvedPath);
       }, 2500);
     } catch (err) {
-      setError(`Failed to register theme: ${(err as Error).message}`);
+      setError(`Failed to register ${projectLabel.toLowerCase()}: ${(err as Error).message}`);
       setStep('path-existing');
     }
   };
@@ -168,14 +169,14 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
         <Box marginBottom={1}>
           <Text color="cyan" bold>
             {isLandingPage
-              ? '🛬 Create Product Landing Page Theme'
+              ? '🛬 Register Product Landing Page'
               : '✨ Create New Theme'}
           </Text>
         </Box>
 
         {step === 'mode' && (
           <Box flexDirection="column">
-            <Text>How would you like to start your theme?</Text>
+            <Text>{isLandingPage ? 'Register an existing Product Landing Page directory.' : 'How would you like to start your theme?'}</Text>
             <Box marginTop={1}>
               <SelectInput
                 items={[
@@ -261,12 +262,12 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
 
         {step === 'name-existing' && (
           <Box flexDirection="column">
-            <Text>Give this theme a name (used as a label):</Text>
+            <Text>Give this {projectLabel.toLowerCase()} a name (used as a label):</Text>
             <Box marginTop={1}>
               <TextInput
                 value={themeName}
                 onChange={setThemeName}
-                placeholder="my-existing-theme"
+                placeholder={isLandingPage ? 'my-product-landing-page' : 'my-existing-theme'}
               />
             </Box>
             {error && (
@@ -282,7 +283,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
 
         {step === 'path-existing' && (
           <Box flexDirection="column">
-            <Text>Path to the existing theme directory:</Text>
+            <Text>Path to the existing {projectLabel.toLowerCase()} directory:</Text>
             <Box marginTop={1}>
               <TextInput
                 value={existingPath}
@@ -300,7 +301,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
                 </Text>
               </Text>
               <Text dimColor>
-                A .vitrin/theme.json will be written there to track the theme.
+                A .vitrin/theme.json will be written there to track this {projectLabel.toLowerCase()}.
               </Text>
             </Box>
             {error && (
@@ -329,7 +330,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
         {step === 'complete' && (
           <Box flexDirection="column">
             <Text color="green" bold>
-              ✓ {mode === 'clone' ? 'Theme created' : 'Theme registered'}{' '}
+              ✓ {projectLabel} {mode === 'clone' ? 'created' : 'registered'}{' '}
               successfully!
             </Text>
             <Box marginTop={1}>
@@ -345,7 +346,7 @@ export const NewThemeView: React.FC<NewThemeViewProps> = ({
               <Text dimColor> 1. vitrin build</Text>
               <Text dimColor> 2. vitrin push</Text>
               <Box marginTop={1}>
-                <Text color="cyan">Switching to theme directory...</Text>
+                <Text color="cyan">Selecting {projectLabel.toLowerCase()}...</Text>
               </Box>
             </Box>
           </Box>

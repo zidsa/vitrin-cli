@@ -278,7 +278,7 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
         throw new Error(
           `Missing ${validation.missing.join(', ')} in ${validation.resolvedPath}. ` +
             `Refusing to push: this directory is not a theme. ` +
-            `Use 'Switch Theme' or cd to the actual theme folder.`
+            `Use 'Select Project' or cd to the actual project folder.`
         );
       }
 

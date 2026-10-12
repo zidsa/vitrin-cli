@@ -21,7 +21,7 @@ const activateCommand = new Command('activate')
         );
         if (installation.theme?.type === 'product_landing_page') {
           logger.error(
-            'Product landing page themes are never activated; merchants create pages from them instead'
+            'Product landing pages are never activated; merchants create pages from them instead'
           );
           process.exit(1);
         }
