@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `vitrin login` no longer wipes the saved `VITRIN_*` settings in
+  `~/.vitrin/config.json`; the token is merged into the file, and `logout`
+  removes only the token.
+- The login callback server only accepts a token from the Partner Dashboard
+  origin. Requests from any other site are refused with 403 and no longer end
+  the pending login.
+
 ## [1.4.0] - 2026-09-24
 
 ### Added
