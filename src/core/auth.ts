@@ -105,7 +105,8 @@ export class AuthManager {
       const partnerBaseUrl =
         process.env.VITRIN_PARTNER_URL || 'https://partner.zid.sa';
       const partnerOrigin = new URL(partnerBaseUrl).origin;
-      const authUrl = `${partnerBaseUrl}/cli/authorized`;
+      // The dashboard sends the token back to localhost on this port.
+      const authUrl = `${partnerBaseUrl}/cli/authorized?port=${port}`;
       logger.info('Opening Zid Partner Dashboard in your default browser...');
 
       open(authUrl).catch(() => {
