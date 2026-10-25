@@ -14,10 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The login callback server only accepts a token from the Partner Dashboard
   origin. Requests from any other site are refused with 403 and no longer end
   the pending login.
-- `vitrin login --port <n>` passes the port to the Partner Dashboard
-  (`/cli/authorized?port=<n>`) so the token is sent back to that port instead
-  of always to 4444. Needs the matching Partner Dashboard release; until then
-  only the default port 4444 receives the token.
 
 ## [1.4.0] - 2026-09-24
 
