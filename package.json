@@ -8,7 +8,7 @@
     "vitrin": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm --filter @zidsa/vitrin-core run build && tsc",
     "postbuild": "node -e \"if(process.platform!=='win32'){require('fs').chmodSync('dist/cli.js',0o755)}\"",
     "dev": "tsx src/cli.ts",
     "tui": "tsx src/cli.ts",
@@ -23,7 +23,8 @@
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
     "clean": "rm -rf dist coverage",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "test:core": "pnpm --filter @zidsa/vitrin-core run test"
   },
   "keywords": [
     "cli",
@@ -41,7 +42,7 @@
   "dependencies": {
     "@types/gettext-parser": "^9.0.0",
     "@types/inquirer": "^9.0.9",
-    "archiver": "^7.0.1",
+    "@zidsa/vitrin-core": "workspace:^",
     "axios": "^1.11.0",
     "boxen": "^8.0.1",
     "chalk": "^5.5.0",
@@ -66,7 +67,6 @@
   },
   "devDependencies": {
     "@jest/globals": "^30.0.5",
-    "@types/archiver": "^6.0.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",

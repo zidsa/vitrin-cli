@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `@zidsa/vitrin-core` (`packages/vitrin-core`) is a pnpm workspace package shared with the Storefront AI Editor desktop app. It holds the API client, theme packaging and asset build, structure checks and the version status table.
+  - Hosts pass a token provider and a logger.
+  - It supports both partner credentials and a merchant's manager credentials (`X-Manager-Token`, `role: Manager`, `store-id`).
+  - New merchant custom-theme calls: `createCustomTheme` (`POST /v2/themes/custom/`), `updateCustomTheme` and `getThemeDownloadUrl`.
+  - Covered by 27 Vitest tests.
+
+### Changed
+- `vitrin push` (CLI and TUI) now packages the theme with the same rule as `build` and `preview`. The push zip no longer includes:
+  - the root `dist/` and `build/` folders (Bnfsj writes `dist/bnfsj.zip` there);
+  - `*.log`, `*.tmp` and `Thumbs.db` files.
+
+  Compiled assets under `assets/` are still included.
+
 ### Fixed
 - `vitrin login` no longer wipes the saved `VITRIN_*` settings in
   `~/.vitrin/config.json`; the token is merged into the file, and `logout`
@@ -14,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The login callback server only accepts a token from the Partner Dashboard
   origin. Requests from any other site are refused with 403 and no longer end
   the pending login.
+- `push` checks the package against the server's `max_size_mb` before uploading. Before, it read the value and never used it.
+- `LOG_LEVEL=debug` request dumps mask `x-partner-token`, `X-Manager-Token`, `Authorization` and `Access-Token` instead of printing them, and no longer print request bodies (which included S3 upload fields).
+- `vitrin build --compression 0` stores files uncompressed instead of silently using level 9.
 
 ## [1.4.0] - 2026-09-24
 
