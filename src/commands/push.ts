@@ -8,7 +8,7 @@ import { ThemeManager } from '../core/theme.js';
 import api from '../core/api.js';
 import auth from '../core/auth.js';
 import logger from '../utils/logger.js';
-import buildService from '../utils/build.js';
+import buildService, { assertPackageSize } from '../utils/build.js';
 import {
   findDiscouragedTemplates,
   removeDiscouragedTemplates,
@@ -166,26 +166,8 @@ async function pushTheme(options: PushOptions): Promise<void> {
     await fs.mkdir(distDir, { recursive: true });
     const packagePath = join(distDir, 'theme.zip');
 
-    const archiver = (await import('archiver')).default;
-    const { createWriteStream } = await import('fs');
-    const output = createWriteStream(packagePath);
-    const archive = archiver('zip', {
-      zlib: { level: 9 },
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      output.on('close', () => resolve());
-      output.on('error', reject);
-      archive.on('error', reject);
-
-      archive.pipe(output);
-
-      archive.glob('**/*', {
-        cwd: themePath,
-        ignore: ['*.git*', '**/node_modules/**', '**/.vitrin/**', '*.zip'],
-      });
-
-      archive.finalize();
+    await buildService.zipTheme('theme', themePath, {
+      outputFile: packagePath,
     });
 
     spinner.succeed('Theme package built successfully');
@@ -299,6 +281,8 @@ async function pushTheme(options: PushOptions): Promise<void> {
     };
 
     spinner.succeed(`Created version ${versionData.version}`);
+
+    await assertPackageSize(packagePath, uploadData.max_size_mb);
 
     spinner.start('Uploading theme package to S3...');
     const fileBuffer = await fs.readFile(packagePath);

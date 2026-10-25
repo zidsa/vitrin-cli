@@ -36,13 +36,18 @@ This is a dual-mode CLI: every feature is reachable both as a one-shot `vitrin <
 - `src/cli.ts` — entry point. Wires up Commander, loads `~/.vitrin/config.json` env overrides, and registers each subcommand. With no args, it falls through to launching the TUI via `src/tui/index.tsx`.
 - `src/commands/*.ts` — one file per Commander subcommand (`build`, `push`, `preview`, `new`, `link`, `themes`, `presets`, `status`, `download`, `translations`, etc.). These are the headless, scriptable code paths.
 - `src/tui/` — Ink app. `App.tsx` is the router; `views/` holds one component per screen (`Dashboard`, `PushView`, `PreviewWizard`, `VersionsView`, `ThemeManagerView`, `SwitchThemeView`, `LinkView`, `NewThemeView`, etc.). The TUI mirrors the CLI commands rather than wrapping them — both call into the same core/utils modules.
+- `packages/vitrin-core/` — **`@zidsa/vitrin-core`**, a pnpm workspace package shared with the Storefront AI Editor desktop app. It holds the API client (`api.ts`), packaging and asset build (`build.ts`), structure checks (`themeValidation.ts`) and the version status table (`themeStatus.ts`). It has no CLI dependencies:
+  - The host passes a `TokenProvider` (`partner` or `manager` credentials, plus an optional `onUnauthorized` hook) instead of reading `~/.vitrin/config.json`.
+  - The host plugs in its logger with `setLogger`.
+  - Tests are Vitest: `pnpm --filter @zidsa/vitrin-core test`.
+  - The CLI keeps thin wrappers at the old paths (`src/core/api.ts`, `src/core/themeStatus.ts`, `src/utils/build.ts`, `src/utils/themeValidation.ts`), so commands and views import as before. `src/core/vitrinCore.ts` connects core logging to the CLI logger.
 - `src/core/` — domain layer shared by both modes:
-  - `api.ts` — axios client for the Zid Partner API (base URL `VITRIN_API_URL`, default `https://api.zid.sa`). All HTTP goes through this single service.
+  - `api.ts` — the CLI's instance of vitrin-core's `ApiService`. It reads the partner token from `auth.ts` and handles re-login on 401. The base URL is `VITRIN_API_URL`, default `https://api.zid.sa`. All HTTP goes through this single service.
   - `auth.ts` — OAuth flow + token persistence.
   - `theme.ts` — `ThemeManager`. Reads/writes `<theme>/.vitrin/theme.json` (local link/push state) and mirrors every change into the global registry at `~/.vitrin/themes.json`. Static helpers (`listGlobalThemes`, `findGlobalThemeByName`, `pruneGlobalThemes`, `removeGlobalTheme`) are how the TUI's *Switch Theme* / *Link Theme* flows enumerate known themes.
   - `themeStatus.ts` — version status enum + the partner-allowed transition table (used by both `vitrin status` and the TUI's status picker).
 - `src/utils/` — cross-cutting helpers:
-  - `build.ts` — `BuildService`: archive creation, `.DS_Store` stripping, and `runAssetBuild()` which detects the package manager from the lockfile (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm), runs `<pm> install` if needed, then `<pm> run build`, streaming stdout/stderr back to the caller.
+  - `build.ts` (from vitrin-core) — `BuildService`: archive creation with the single `THEME_ZIP_EXCLUDES` rule used by build, push and preview, `assertPackageSize` (the server's `max_size_mb`), `.DS_Store` stripping, and `runAssetBuild()` which detects the package manager from the lockfile (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm), runs `<pm> install` if needed, then `<pm> run build`, streaming stdout/stderr back to the caller.
   - `themeValidation.ts` — single source of truth for `REQUIRED_THEME_FILES` (`layout.jinja`, `header.jinja`, `footer.jinja`, `templates/home.jinja`), `DISCOURAGED_THEME_TEMPLATES` (account/loyalty/address pages Zid manages with platform defaults), and the `findDiscouragedTemplates` / `removeDiscouragedTemplates` / `appendValidatePath` helpers used by both `push`/`preview` CLI commands and their TUI wizards.
   - `version.ts` — semver helpers (`bumpSemVer`, `nextVersions`, `isValidSemVer`) shared by the `vitrin push --bump` flag and the TUI bump picker.
   - `createTheme.ts` — shared theme-bootstrap logic (clone-template vs. register-existing-directory). Both `vitrin new` and the TUI's *Create New Theme* wizard funnel through here so behavior stays identical.
@@ -79,9 +84,9 @@ If you add a new pre-flight check, add it in **both** the CLI command and the co
 
 When cutting a version:
 
-1. Bump `version` in `package.json`.
+1. Bump `version` in `package.json`. If `packages/vitrin-core` changed, bump its version too and publish it first (`pnpm --filter @zidsa/vitrin-core publish`). The CLI depends on it as `workspace:^`, and `pnpm publish` rewrites that to the published version.
 2. Add a section at the top of `CHANGELOG.md` under `## [X.Y.Z] - YYYY-MM-DD` following the existing Keep-a-Changelog style (Added / Changed / Removed / Fixed / Migration notes).
 3. Update the relevant sections of `README.md` if user-visible behavior changed (push/preview/build pipeline copy, file structure diagram, command flags).
-4. `pnpm run build` to confirm types still pass.
+4. `pnpm run build` to confirm types still pass. It builds vitrin-core first, then the CLI.
 
 The `files` field in `package.json` only ships `dist/`, `assets/`, `README.md`, `LICENSE` — anything that needs to be in the published package goes there.

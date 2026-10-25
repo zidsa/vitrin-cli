@@ -52,11 +52,25 @@ export class AuthManager {
     return null;
   }
 
+  // config.json also holds the saved VITRIN_* settings, so token writes must
+  // merge into it rather than replace it.
+  private async readConfig(): Promise<Record<string, unknown>> {
+    try {
+      const parsed = JSON.parse(await fs.readFile(CONFIG_FILE, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Missing or unreadable config — start from an empty one.
+    }
+    return {};
+  }
+
   async setToken(token: string): Promise<boolean> {
     try {
       await this.ensureConfigDir();
 
-      const config = { access_token: token };
+      const config = { ...(await this.readConfig()), access_token: token };
       await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
 
       this.cachedToken = token;
@@ -69,9 +83,16 @@ export class AuthManager {
   }
 
   async clearToken(): Promise<void> {
+    this.cachedToken = null;
     try {
-      await fs.unlink(CONFIG_FILE);
-      this.cachedToken = null;
+      const config = await this.readConfig();
+      delete config.access_token;
+
+      if (Object.keys(config).length === 0) {
+        await fs.unlink(CONFIG_FILE);
+      } else {
+        await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
+      }
     } catch (error) {
       logger.debug('No config file to clear');
     }
@@ -83,6 +104,7 @@ export class AuthManager {
 
       const partnerBaseUrl =
         process.env.VITRIN_PARTNER_URL || 'https://partner.zid.sa';
+      const partnerOrigin = new URL(partnerBaseUrl).origin;
       const authUrl = `${partnerBaseUrl}/cli/authorized`;
       logger.info('Opening Zid Partner Dashboard in your default browser...');
 
@@ -98,7 +120,7 @@ export class AuthManager {
 
       app.use(
         cors({
-          origin: true,
+          origin: partnerOrigin,
           credentials: true,
           methods: ['GET', 'POST', 'OPTIONS'],
           allowedHeaders: ['Content-Type', 'Authorization', 'x-partner-token'],
@@ -106,6 +128,34 @@ export class AuthManager {
           optionsSuccessStatus: 204,
         })
       );
+
+      // Only the Partner Dashboard may hand us a token. Its fetch() calls carry
+      // an Origin header; its fallback redirect carries only a Referer. Anything
+      // else (another site posting its own token while we wait) is refused
+      // without ending the login, so the real callback can still arrive.
+      const isFromPartnerDashboard = (req: any): boolean => {
+        const origin = req.get('origin');
+        if (origin) return origin === partnerOrigin;
+
+        const referer = req.get('referer');
+        if (!referer) return false;
+        try {
+          return new URL(referer).origin === partnerOrigin;
+        } catch {
+          return false;
+        }
+      };
+
+      app.use('/auth/callback', (req: any, res: any, next: any) => {
+        if (isFromPartnerDashboard(req)) return next();
+
+        logger.warn(
+          `Ignored authentication callback from untrusted origin: ${
+            req.get('origin') || req.get('referer') || 'unknown'
+          }`
+        );
+        res.status(403).send('Forbidden');
+      });
 
       const server = app.listen(port, () => {
         logger.info(
@@ -118,20 +168,8 @@ export class AuthManager {
         reject(new Error('Authentication timeout'));
       }, 600000);
 
-      app.options('/auth/callback', (_req: any, res: any) => {
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.header(
-          'Access-Control-Allow-Headers',
-          'Content-Type, Authorization, x-partner-token'
-        );
-        res.sendStatus(204);
-      });
-
       app.get('/auth/callback', async (req: any, res: any) => {
         clearTimeout(timeout);
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Credentials', 'true');
 
         const authToken = req.query.token;
 
@@ -179,8 +217,6 @@ export class AuthManager {
 
       app.post('/auth/callback', async (req: any, res: any) => {
         clearTimeout(timeout);
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Credentials', 'true');
 
         const authToken = req.body?.token || req.query.token;
 

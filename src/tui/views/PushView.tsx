@@ -6,7 +6,7 @@ import TextInput from 'ink-text-input';
 import { ThemeManager } from '../../core/theme.js';
 import api from '../../core/api.js';
 import auth from '../../core/auth.js';
-import buildService from '../../utils/build.js';
+import buildService, { assertPackageSize } from '../../utils/build.js';
 import {
   findDiscouragedTemplates,
   removeDiscouragedTemplates,
@@ -330,21 +330,8 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       await fs.mkdir(distDir, { recursive: true });
       const packagePath = join(distDir, 'theme.zip');
 
-      const archiver = (await import('archiver')).default;
-      const { createWriteStream } = await import('fs');
-      const output = createWriteStream(packagePath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      await new Promise<void>((resolveP, rejectP) => {
-        output.on('close', () => resolveP());
-        output.on('error', rejectP);
-        archive.on('error', rejectP);
-        archive.pipe(output);
-        archive.glob('**/*', {
-          cwd: themePath,
-          ignore: ['*.git*', '**/node_modules/**', '**/.vitrin/**', '*.zip'],
-        });
-        archive.finalize();
+      await buildService.zipTheme('theme', themePath, {
+        outputFile: packagePath,
       });
 
       let theme: any;
@@ -406,6 +393,8 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       };
 
       addLog(`✅ Version ${versionData.version} ready`);
+
+      await assertPackageSize(packagePath, uploadData.max_size_mb);
 
       addLog('📤 Uploading to S3...');
       const fileBuffer = await fs.readFile(packagePath);

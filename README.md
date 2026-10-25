@@ -119,6 +119,10 @@ a folder that is missing any of the required theme files (`layout.jinja`,
 `.vitrin/theme.json` from the wrong directory cannot silently push the
 wrong files.
 
+The package uses the same file rules as `vitrin build` (see below). If it
+is larger than the upload limit the server reports (`max_size_mb`), push
+stops before uploading.
+
 
 **Options:**
 - `-s, --store <id>` - Dev store ID to install on
@@ -324,7 +328,14 @@ type is read from `.vitrin/theme.json`.
    the BuildView/PushView UI. Themes without a `build` script skip this
    step transparently.
 3. Strip `.DS_Store` files.
-4. Zip everything except `node_modules/`, `.git*`, `.vitrin/`, and `*.zip`.
+4. Zip the theme. `build`, `push` and `preview` all use the same rule. It skips:
+   - dotfiles (`.git`, `.vitrin`, `.env*`, `.DS_Store`);
+   - `node_modules/` at any depth;
+   - the root `dist/` and `build/` folders;
+   - `*.log`, `*.tmp` and `Thumbs.db`;
+   - `*.zip` files at the root.
+
+   Compiled assets under `assets/` (for example `assets/dist/`) are kept.
 5. Verify the archive on disk.
 
 **Options:**
