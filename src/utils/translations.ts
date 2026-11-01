@@ -10,7 +10,7 @@ export interface TranslationsOptions {
 }
 
 const SKIP_DIRS = new Set(['node_modules', 'locale', '.git', 'dist', '.venv-i18n']);
-const TRANS_RE = /(?<![A-Za-z0-9_])_\(\s*(['"])((?:\\.|(?!\1).)*)\1\s*\)/g;
+const TRANS_RE = /(?<![A-Za-z0-9_])_\(\s*(['"])((?:\\.|(?!\1)[^\\\n\r\u2028\u2029])*)\1\s*\)/g;
 
 async function* walkJinja(dir: string): AsyncGenerator<string> {
   for (const entry of await readdir(dir, { withFileTypes: true })) {

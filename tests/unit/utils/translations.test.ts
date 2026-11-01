@@ -268,4 +268,30 @@ describe('generateTranslations', () => {
 
     expect(msgidsOf(potPath())).toEqual(['Deep', 'Top']);
   });
+
+  it('treats a backslash before the closing quote as an escape, not a terminator', async () => {
+    writeJinja('layout.jinja', `_("lone \\") _("ok") _('it\\'s')`);
+
+    await generateTranslations({ themePath: themeDir, languages: ['ar'] });
+
+    expect(msgidsOf(potPath())).toEqual(["it's", 'ok']);
+  });
+
+  it('does not match a message that spans a line break', async () => {
+    writeJinja('layout.jinja', `_("first\nsecond") _("same line")`);
+
+    await generateTranslations({ themePath: themeDir, languages: ['ar'] });
+
+    expect(msgidsOf(potPath())).toEqual(['same line']);
+  });
+
+  it('extracts quickly from an unterminated call full of escapes (ReDoS guard)', async () => {
+    writeJinja('evil.jinja', '_("' + '\\a'.repeat(25_000) + `\n_("after")`);
+
+    const start = Date.now();
+    await generateTranslations({ themePath: themeDir, languages: ['ar'] });
+
+    expect(Date.now() - start).toBeLessThan(2000);
+    expect(msgidsOf(potPath())).toEqual(['after']);
+  });
 });
