@@ -326,26 +326,7 @@ export default function PushView({ onComplete, onBack }: PushViewProps) {
       }
 
       addLog('📦 Building theme package...');
-      const distDir = join(themePath, '.vitrin', 'dist');
-      await fs.mkdir(distDir, { recursive: true });
-      const packagePath = join(distDir, 'theme.zip');
-
-      const archiver = (await import('archiver')).default;
-      const { createWriteStream } = await import('fs');
-      const output = createWriteStream(packagePath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      await new Promise<void>((resolveP, rejectP) => {
-        output.on('close', () => resolveP());
-        output.on('error', rejectP);
-        archive.on('error', rejectP);
-        archive.pipe(output);
-        archive.glob('**/*', {
-          cwd: themePath,
-          ignore: ['*.git*', '**/node_modules/**', '**/.vitrin/**', '*.zip'],
-        });
-        archive.finalize();
-      });
+      const packagePath = await buildService.zipThemeForPush(themePath);
 
       let theme: any;
       let isNewTheme = !themeConfig.id;
