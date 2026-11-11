@@ -11,6 +11,16 @@ import {
 } from './themeValidation.js';
 import type { BuildOptions, ThemeType } from '../types/index.js';
 
+const AGENT_FILE_EXCLUDES = [
+  '.agents',
+  '.claude',
+  '.codex',
+  '.cursor',
+  '.hermes',
+  'AGENTS.md',
+  'CLAUDE.md',
+].flatMap(name => [`**/${name}`, `**/${name}/**`]);
+
 export type AssetBuildProgress = (line: string) => void;
 
 export interface AssetBuildResult {
@@ -76,6 +86,7 @@ export class BuildService {
         'build/**',
         '.env*',
         '*.zip',
+        ...AGENT_FILE_EXCLUDES,
       ];
 
       const excludes = [...defaultExcludes, ...(options.exclude || [])];
@@ -88,6 +99,40 @@ export class BuildService {
 
       archive.finalize();
     });
+  }
+
+  async zipThemeForPush(themePath: string): Promise<string> {
+    const distDir = join(themePath, '.vitrin', 'dist');
+    await fs.mkdir(distDir, { recursive: true });
+    const packagePath = join(distDir, 'theme.zip');
+
+    const output = createWriteStream(packagePath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      output.on('close', () => resolve());
+      output.on('error', reject);
+      archive.on('error', reject);
+
+      archive.pipe(output);
+
+      archive.glob('**/*', {
+        cwd: themePath,
+        ignore: [
+          '*.git*',
+          '**/node_modules/**',
+          '**/.vitrin/**',
+          '*.zip',
+          ...AGENT_FILE_EXCLUDES,
+        ],
+      });
+
+      archive.finalize();
+    });
+
+    return packagePath;
   }
 
   private detectInstaller(themePath: string): 'pnpm' | 'yarn' | 'npm' {
