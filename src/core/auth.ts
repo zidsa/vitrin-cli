@@ -107,7 +107,8 @@ export class AuthManager {
         })
       );
 
-      const server = app.listen(port, () => {
+      // Keep the token callback inaccessible to other machines on the network.
+      const server = app.listen(port, '127.0.0.1', () => {
         logger.info(
           `Listening for authentication callback on http://localhost:${port}/auth/callback`
         );
