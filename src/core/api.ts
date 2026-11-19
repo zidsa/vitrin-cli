@@ -312,6 +312,7 @@ export class ApiService {
     const responses = await Promise.all([
       this.getThemes({ page_size: 100 }),
       this.getThemes({ page_size: 100, type: 'product_landing_page' }),
+      this.getThemes({ page_size: 100, type: 'ngo' }),
     ]);
     return responses.flatMap(response => response.results ?? []);
   }

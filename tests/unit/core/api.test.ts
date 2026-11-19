@@ -77,6 +77,30 @@ describe('ApiService', () => {
     });
   });
 
+  describe('getAllThemes', () => {
+    it('fetches every theme type, NGO themes included', async () => {
+      mockAxiosInstance.get.mockImplementation((_url: string, config: any) =>
+        Promise.resolve(
+          mockApiResponse({
+            count: 1,
+            results: [{ id: config.params.type ?? 'theme' }],
+          })
+        )
+      );
+
+      const result = await apiService.getAllThemes();
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/v2/themes/', {
+        params: { page_size: 100, type: 'ngo' },
+      });
+      expect(result.map(theme => theme.id)).toEqual([
+        'theme',
+        'product_landing_page',
+        'ngo',
+      ]);
+    });
+  });
+
   describe('createTheme', () => {
     it('should create a theme successfully', async () => {
       const themeData = {

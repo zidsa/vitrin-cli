@@ -5,7 +5,7 @@ export interface Partner {
   access_token?: string;
 }
 
-export type ThemeType = 'theme' | 'product_landing_page';
+export type ThemeType = 'theme' | 'product_landing_page' | 'ngo';
 
 export interface Theme {
   id: string;

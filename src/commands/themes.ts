@@ -12,7 +12,7 @@ const themesCommand = new Command('themes')
       .option('-s, --search <term>', 'Search themes by name')
       .option(
         '--type <type>',
-        'Filter by theme type: theme (default) or product_landing_page'
+        'Filter by theme type: theme (default), product_landing_page or ngo'
       )
       .action(async options => {
         try {
