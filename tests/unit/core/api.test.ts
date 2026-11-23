@@ -77,6 +77,61 @@ describe('ApiService', () => {
     });
   });
 
+  describe('getAllThemes', () => {
+    it('fetches every theme type, NGO themes included', async () => {
+      mockAxiosInstance.get.mockImplementation((_url: string, config: any) =>
+        Promise.resolve(
+          mockApiResponse({
+            count: 1,
+            results: [{ id: config.params.type ?? 'theme' }],
+          })
+        )
+      );
+
+      const result = await apiService.getAllThemes();
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/v2/themes/', {
+        params: { page_size: 100, type: 'ngo' },
+      });
+      expect(result.map(theme => theme.id)).toEqual([
+        'theme',
+        'product_landing_page',
+        'ngo',
+      ]);
+    });
+  });
+
+  describe('getLinkableThemes', () => {
+    beforeEach(() => {
+      mockAxiosInstance.get.mockImplementation((_url: string, config: any) =>
+        Promise.resolve(
+          mockApiResponse({
+            count: 1,
+            results: [{ id: config.params.type ?? 'theme' }],
+          })
+        )
+      );
+    });
+
+    it('offers themes and NGO themes to a theme project', async () => {
+      const result = await apiService.getLinkableThemes('theme');
+
+      expect(result.map(theme => theme.id)).toEqual(['theme', 'ngo']);
+    });
+
+    it('offers themes and NGO themes to an NGO project', async () => {
+      const result = await apiService.getLinkableThemes('ngo');
+
+      expect(result.map(theme => theme.id)).toEqual(['theme', 'ngo']);
+    });
+
+    it('offers only product landing pages to a landing page project', async () => {
+      const result = await apiService.getLinkableThemes('product_landing_page');
+
+      expect(result.map(theme => theme.id)).toEqual(['product_landing_page']);
+    });
+  });
+
   describe('createTheme', () => {
     it('should create a theme successfully', async () => {
       const themeData = {

@@ -18,7 +18,16 @@ const listCommand = new Command('list')
       if (showThemes) {
         logger.loading('Fetching themes...');
         try {
-          const themesResponse = await apiService.getThemes();
+          // The API lists one type per request (default "theme"), so NGO themes are fetched too.
+          const [ordinary, ngo] = await Promise.all([
+            apiService.getThemes(),
+            apiService.getThemes({ type: 'ngo' }),
+          ]);
+          const themesResponse = {
+            ...ordinary,
+            count: ordinary.count + ngo.count,
+            results: [...ordinary.results, ...ngo.results],
+          };
 
           if (options.json) {
             console.log(JSON.stringify(themesResponse, null, 2));

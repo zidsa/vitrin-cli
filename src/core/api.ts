@@ -312,6 +312,22 @@ export class ApiService {
     const responses = await Promise.all([
       this.getThemes({ page_size: 100 }),
       this.getThemes({ page_size: 100, type: 'product_landing_page' }),
+      this.getThemes({ page_size: 100, type: 'ngo' }),
+    ]);
+    return responses.flatMap(response => response.results ?? []);
+  }
+
+  /**
+   * Themes a project of this type can be linked to: product landing pages for a
+   * landing page project, otherwise themes and NGO themes.
+   */
+  async getLinkableThemes(type?: ThemeType): Promise<Theme[]> {
+    if (type === 'product_landing_page') {
+      return (await this.getThemes({ page_size: 100, type })).results ?? [];
+    }
+    const responses = await Promise.all([
+      this.getThemes({ page_size: 100 }),
+      this.getThemes({ page_size: 100, type: 'ngo' }),
     ]);
     return responses.flatMap(response => response.results ?? []);
   }

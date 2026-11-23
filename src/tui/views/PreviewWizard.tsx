@@ -401,14 +401,14 @@ export const PreviewWizard: React.FC<PreviewWizardProps> = ({
       try {
         setLoading(true);
         const { type } = await new ThemeManager(resolvedPath).getConfig();
-        const themes = await apiService.getThemes({ page_size: 100, type });
+        const themes = await apiService.getLinkableThemes(type);
 
-        if (!themes.results || themes.results.length === 0) {
+        if (themes.length === 0) {
           await startProceed(selectedStore!, null, themeNameBase, resolvedPath);
         } else {
           setExistingThemes([
             { id: 'new', name: '🆕 Create New Theme', isNew: true },
-            ...themes.results.map((t: any) => ({
+            ...themes.map((t: any) => ({
               id: t.id,
               name: `${typeof t.name === 'object' ? t.name.en : t.name} (${t.id})`,
               isExisting: true
