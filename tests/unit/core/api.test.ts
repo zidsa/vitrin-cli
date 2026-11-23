@@ -101,6 +101,37 @@ describe('ApiService', () => {
     });
   });
 
+  describe('getLinkableThemes', () => {
+    beforeEach(() => {
+      mockAxiosInstance.get.mockImplementation((_url: string, config: any) =>
+        Promise.resolve(
+          mockApiResponse({
+            count: 1,
+            results: [{ id: config.params.type ?? 'theme' }],
+          })
+        )
+      );
+    });
+
+    it('offers themes and NGO themes to a theme project', async () => {
+      const result = await apiService.getLinkableThemes('theme');
+
+      expect(result.map(theme => theme.id)).toEqual(['theme', 'ngo']);
+    });
+
+    it('offers themes and NGO themes to an NGO project', async () => {
+      const result = await apiService.getLinkableThemes('ngo');
+
+      expect(result.map(theme => theme.id)).toEqual(['theme', 'ngo']);
+    });
+
+    it('offers only product landing pages to a landing page project', async () => {
+      const result = await apiService.getLinkableThemes('product_landing_page');
+
+      expect(result.map(theme => theme.id)).toEqual(['product_landing_page']);
+    });
+  });
+
   describe('createTheme', () => {
     it('should create a theme successfully', async () => {
       const themeData = {
